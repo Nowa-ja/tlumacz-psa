@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timedelta
 from gtts import gTTS
 
-# Czysta, bezpieczna konfiguracja bez wymuszania procesów w tle
+# Czysta, bezpieczna konfiguracja
 st.set_page_config(page_title="HauTłumacz v8.0", page_icon="🐕", layout="centered")
 
 # Inicjalizacja czasu ostatniego użycia
@@ -37,13 +37,25 @@ DODATKOWE_ZDANIA = [
     "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
-# Style CSS wprowadzające Twój wymarzony zielony szablon
+# Style CSS wprowadzające zielony szablon oraz pozycjonowanie nowego LOGO
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
-    h1 { color: #1e4620 !important; text-align: center; }
+    h1 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
     .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #e8f5e9; }
+    .logo-container { display: flex; justify-content: center; margin-bottom: 10px; }
+    .logo-img { border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .footer { text-align: center; margin-top: 50px; font-size: 0.8em; color: #666; }
     </style>
+""", unsafe_allow_html=True)
+
+# --- SEKCJA LOGO Z TWOIM LINKIEM IMGBB ---
+LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co"
+
+st.markdown(f"""
+    <div class="logo-container">
+        <img src="{LINK_DO_TWOJEGO_ZDJECIA}" width="180" class="logo-img">
+    </div>
 """, unsafe_allow_html=True)
 
 st.title("🐕 HauTłumacz v8.0")
@@ -52,7 +64,7 @@ st.write("---")
 # ==================== SEKCJA GÓRNA: NAGRYWANIE ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
 
-col_rec, col_status = st.columns([1, 1])
+col_rec, col_status = st.columns()
 
 with col_rec:
     audio_nagrane = st.audio_input("Nagraj")
@@ -69,7 +81,6 @@ if audio_nagrane is not None:
     roznica_czasu = teraz - st.session_state.ostatnie_uzycie
     st.session_state.ostatnie_uzycie = teraz
     
-    # Wybór wypowiedzi
     if roznica_czasu > timedelta(hours=4):
         wylosowany_tekst = "Hej! Ignorujesz mnie już od ponad 4 godzin! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
     else:
@@ -77,7 +88,6 @@ if audio_nagrane is not None:
     
     pelny_tekst = f"{wylosowany_tekst} {random.choice(DODATKOWE_ZDANIA)}"
     
-    # Generowanie głosu lektora
     tts = gTTS(text=pelny_tekst, lang='pl')
     fp = io.BytesIO()
     tts.write_to_fp(fp)
@@ -86,8 +96,7 @@ if audio_nagrane is not None:
     st.write("---")
     st.markdown("### 📊 Wynik analizy")
     
-    # Układ kolumn: głośnik po lewej, tekst po prawej
-    col_glosnik, col_tekst = st.columns([1, 2])
+    col_glosnik, col_tekst = st.columns()
     
     with col_glosnik:
         st.write("🔊 **Odtwórz:**")
@@ -97,5 +106,16 @@ if audio_nagrane is not None:
         st.write("💬 **Tłumaczenie:**")
         st.success(pelny_tekst)
 
+# ==================== STOPKA Z REGULAMINEM ====================
 st.write("---")
-st.caption("HauTłumacz v8.0 - Stabilna wersja chmurowa.")
+col_foot1, col_foot2 = st.columns()
+with col_foot1:
+    st.caption("HauTłumacz v8.0 - Stabilna wersja chmurowa.")
+with col_foot2:
+    if st.button("📝 Regulamin strony"):
+        st.info("""
+        **Regulamin strony hauhau.online**
+        1. Strona ma charakter wyłącznie rozrywkowy i humorystyczny.
+        2. Aplikacja nie zbiera, nie przetwarza ani nie zapisuje żadnych danych osobowych ani nagrań użytkowników.
+        3. Korzystanie z portalu jest w 100% darmowe.
+        """)
