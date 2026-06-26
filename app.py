@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timedelta
 from gtts import gTTS
 
-# Czysta, bezpieczna konfiguracja
+# Czysta, bezpieczna konfiguracja okna
 st.set_page_config(page_title="HauTłumacz v8.0", page_icon="🐕", layout="centered")
 
 # Inicjalizacja czasu ostatniego użycia
@@ -37,7 +37,7 @@ DODATKOWE_ZDANIA = [
     "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
-# Style CSS wprowadzające zielony szablon oraz pozycjonowanie nowego LOGO (Naprawione!)
+# Style CSS wprowadzające zielony szablon oraz pozycjonowanie nowego LOGO
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
@@ -64,7 +64,8 @@ st.write("---")
 # ==================== SEKCJA GÓRNA: NAGRYWANIE ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
 
-col_rec, col_status = st.columns()
+# POPRAWIONE: Wprowadzono wymagany argument cyfrowy (2) dla st.columns
+col_rec, col_status = st.columns(2)
 
 with col_rec:
     audio_nagrane = st.audio_input("Nagraj")
@@ -96,7 +97,8 @@ if audio_nagrane is not None:
     st.write("---")
     st.markdown("### 📊 Wynik analizy")
     
-    col_glosnik, col_tekst = st.columns()
+    # POPRAWIONE: Wprowadzono wymagany argument cyfrowy (2) dla st.columns
+    col_glosnik, col_tekst = st.columns(2)
     
     with col_glosnik:
         st.write("🔊 **Odtwórz:**")
@@ -108,7 +110,8 @@ if audio_nagrane is not None:
 
 # ==================== STOPKA Z REGULAMINEM ====================
 st.write("---")
-col_foot1, col_foot2 = st.columns()
+# POPRAWIONE: Wprowadzono wymagany argument cyfrowy (2) dla st.columns
+col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
     st.caption("HauTłumacz v8.0 - Stabilna wersja chmurowa.")
 with col_foot2:
