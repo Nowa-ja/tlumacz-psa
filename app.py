@@ -1,19 +1,17 @@
 import streamlit as st
-import numpy as np
-import wave
 import io
 import random
 from datetime import datetime, timedelta
 from gtts import gTTS
 
-# Konfiguracja strony
+# Czysta, bezpieczna konfiguracja bez wymuszania procesów w tle
 st.set_page_config(page_title="HauTłumacz v8.0", page_icon="🐕", layout="centered")
 
 # Inicjalizacja czasu ostatniego użycia
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
 
-# Połączona baza tekstów (aplikacja losuje z całej puli automatycznie)
+# Twoja baza tekstów
 WSZYSTKIE_TEKSTY = [
     "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
     "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
@@ -39,67 +37,65 @@ DODATKOWE_ZDANIA = [
     "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
+# Style CSS wprowadzające Twój wymarzony zielony szablon
+st.markdown("""
+    <style>
+    .stApp { background-color: #f4f7f5; }
+    h1 { color: #1e4620 !important; text-align: center; }
+    .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #e8f5e9; }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🐕 HauTłumacz v8.0")
 st.write("---")
 
 # ==================== SEKCJA GÓRNA: NAGRYWANIE ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
 
-# Dzielimy górny pasek na obszar przycisku i statusu postępu
-col_rec, col_status = st.columns([1, 3])
+col_rec, col_status = st.columns([1, 1])
 
 with col_rec:
-    # Komponent nagrywania jako minimalistyczny przycisk z czerwoną kropką
     audio_nagrane = st.audio_input("Nagraj")
 
 with col_status:
     if audio_nagrane is not None:
-        st.info("🔄 Przetwarzanie dźwięku... Trwa generowanie tłumaczenia.")
+        st.success("✅ Przetworzono pomyślnie!")
     else:
-        st.write("◀ Kliknij ikonę, aby rozpocząć rejestrację dźwięku.")
+        st.info("◀ Kliknij kropkę, aby nagrać.")
 
-# ==================== LOGIKA I PRZETWARZANIE ====================
+# ==================== SEKCJA DOLNA: WYNIK ====================
 if audio_nagrane is not None:
-    raw_audio_bytes = audio_nagrane.read()
-    
     teraz = datetime.now()
     roznica_czasu = teraz - st.session_state.ostatnie_uzycie
     st.session_state.ostatnie_uzycie = teraz
     
-    try:
-        # Decyzja o tekście (Główny filtr czasowy + automatyczny wybór)
-        if roznica_czasu > timedelta(hours=4):
-            wylosowany_tekst = "Hej! Ignorujesz mnie już od ponad 4 godzin! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę, bo zaraz będzie katastrofa na dywanie!"
-        else:
-            wylosowany_tekst = random.choice(WSZYSTKIE_TEKSTY)
+    # Wybór wypowiedzi
+    if roznica_czasu > timedelta(hours=4):
+        wylosowany_tekst = "Hej! Ignorujesz mnie już od ponad 4 godzin! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
+    else:
+        wylosowany_tekst = random.choice(WSZYSTKIE_TEKSTY)
+    
+    pelny_tekst = f"{wylosowany_tekst} {random.choice(DODATKOWE_ZDANIA)}"
+    
+    # Generowanie głosu lektora
+    tts = gTTS(text=pelny_tekst, lang='pl')
+    fp = io.BytesIO()
+    tts.write_to_fp(fp)
+    fp.seek(0)
+    
+    st.write("---")
+    st.markdown("### 📊 Wynik analizy")
+    
+    # Układ kolumn: głośnik po lewej, tekst po prawej
+    col_glosnik, col_tekst = st.columns([1, 2])
+    
+    with col_glosnik:
+        st.write("🔊 **Odtwórz:**")
+        st.audio(fp, format="audio/mp3", autoplay=True)
         
-        # Doklejanie automatycznego drugiego zdania
-        dodatkowe_zdanie = random.choice(DODATKOWE_ZDANIA)
-        pelny_tekst = f"{wylosowany_tekst} {dodatkowe_zdanie}"
-        
-        # Generowanie dźwięku przez gTTS
-        tts = gTTS(text=pelny_tekst, lang='pl')
-        fp = io.BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        
-        # ==================== SEKCJA DOLNA: WYNIK ====================
-        st.write("---")
-        st.markdown("### 📊 Wynik analizy")
-        
-        # Tworzymy układ dolny: głośnik po lewej, tekst po prawej
-        col_glosnik, col_tekst = st.columns([1, 2])
-        
-        with col_glosnik:
-            st.write("🔊 **Odtwórz:**")
-            st.audio(fp, format="audio/mp3", autoplay=True)
-            
-        with col_tekst:
-            st.write("💬 **Tłumaczenie tekstowe:**")
-            st.subheader(f"*\"{pelny_tekst}\"*")
-            
-    except Exception as e:
-        st.error(f"Wystąpił błąd podczas przetwarzania: {e}")
+    with col_tekst:
+        st.write("💬 **Tłumaczenie:**")
+        st.success(pelny_tekst)
 
 st.write("---")
-st.caption("HauTłumacz v8.0 - Przejrzysty i minimalistyczny interfejs.")
+st.caption("HauTłumacz v8.0 - Stabilna wersja chmurowa.")
