@@ -12,6 +12,17 @@ st.set_page_config(page_title="HauTłumacz v7.0 - Troska i Zazdrość", page_ico
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
 
+# --- NOWOŚĆ: BAZA DODATKOWYCH SAMOCZYNNYCH ZDAŃ ---
+DODATKOWE_ZDANIA = [
+    "No i co ty na to człowiek? Przemyśl to sobie.",
+    "A teraz masuj mnie za uchem, bo się obrażę.",
+    "I pamiętaj, widzę wszystko co tam jesz w kuchni!",
+    "Czas ucieka, a miska sama się nie napełni.",
+    "Zrozumiano, czy mam szczeknąć to jeszcze raz?",
+    "I nie patrz tak na mnie, tylko wyciągaj smaczki!",
+    "Dobra, koniec gadania, bierzmy się za konkrety."
+]
+
 # --- ROZBUDOWANA BAZA TEKSTÓW Z NOWYMI FUNKCJAMI ---
 BAZA_TŁUMACZEŃ = {
     "LUDZKIE_MARUDZENIE": {
@@ -99,12 +110,9 @@ if audio_nagrane is not None:
                 
             # 3. WYBÓR: Tryb Psa (z filtrem 4-godzinnym)
             else:
-                # Sprawdzamy, czy aplikacja nie była używana przez ponad 4 godziny
-                # W celach testowych możesz zmienić timedelta(hours=4) na timedelta(seconds=10)
                 if roznica_czasu > timedelta(hours=4):
                     wynik = BAZA_TŁUMACZEŃ["ALARM_SIKU"]
                 else:
-                    # Jeśli przerwa była krótka, analizujemy dźwięk tradycyjnie
                     with wave.open(io.BytesIO(raw_audio_bytes), "rb") as wf:
                         sampwidth = wf.getsampwidth()
                         n_frames = wf.getnframes()
@@ -137,7 +145,12 @@ if audio_nagrane is not None:
                         else:
                             wynik = BAZA_TŁUMACZEŃ["ZABAWA_NORMALNA"]
             
+            # Losowanie podstawowego tekstu
             wylosowany_tekst = random.choice(wynik["teksty"])
+            
+            # --- MODYFIKACJA: Samoczynne generowanie dodatkowego zdania ---
+            dodatkowe_zdanie = random.choice(DODATKOWE_ZDANIA)
+            pelny_tekst = f"{wylosowany_tekst} {dodatkowe_zdanie}"
             
             st.write("---")
             if wynik["kolor"] == "success": st.success(wynik["status"])
@@ -146,10 +159,10 @@ if audio_nagrane is not None:
             else: st.info(wynik["status"])
             
             st.markdown(f"### 💬 Przemyślenia:")
-            st.subheader(f"*\"{wylosowany_tekst}\"*")
+            st.subheader(f"*\"{pelny_tekst}\"*")
             
-            # --- GENEROWANIE AUDIO ---
-            tts = gTTS(text=wylosowany_tekst, lang='pl')
+            # --- GENEROWANIE AUDIO (Z pełnym połączonym tekstem) ---
+            tts = gTTS(text=pelny_tekst, lang='pl')
             fp = io.BytesIO()
             tts.write_to_fp(fp)
             fp.seek(0)
@@ -162,6 +175,3 @@ if audio_nagrane is not None:
 
 st.write("---")
 st.caption("HauTłumacz v7.0 - Bo dobro pieska jest na pierwszym miejscu.")
-
-    st.write("---")
-    st.caption("Bo dobro pieska jest na pierwszym miejscu.")
