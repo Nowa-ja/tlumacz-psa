@@ -1,67 +1,167 @@
 import streamlit as st
-import random
-from gtts import gTTS
+import numpy as np
+import wave
 import io
+import random
+from datetime import datetime, timedelta
+from gtts import gTTS
 
-# --- 1. CONFIG (Musi być jako PIERWSZA komenda Streamlit w pliku) ---
-st.set_page_config(page_title="HauTłumacz v7.0", page_icon="🐕")
+st.set_page_config(page_title="HauTłumacz v7.0 - Troska i Zazdrość", page_icon="🐕", layout="centered")
 
-# --- 2. FUNKCJA OCHRONNA (CYFROWY OCHRONIARZ) ---
-def sprawdz_haslo():
-    """Zwraca True, jeśli użytkownik wpisał poprawne hasło."""
-    if "zalogowany" not in st.session_state:
-        st.session_state["zalogowany"] = False
+# Initialize session state for tracking time gaps between uses
+if "ostatnie_uzycie" not in st.session_state:
+    st.session_state.ostatnie_uzycie = datetime.now()
 
-    if not st.session_state["zalogowany"]:
-        # Ekran blokady przed botami i nieproszonymi gośćmi
-        st.subheader("🔒 Dostęp zablokowany")
-        haslo = st.text_input("Wprowadź tajne hasło, aby uruchomić HauTłumacza:", type="password")
-        if st.button("Zaloguj"):
-            # TUTAJ MOŻESZ ZMIENIĆ SWOJE HASŁO (zostaw cudzysłów)
-            if haslo == "HauHau-2026":  
-                st.session_state["zalogowany"] = True
-                st.rerun()
-            else:
-                st.error("❌ Niepoprawne hasło!")
-        return False
-    return True
+# --- ROZBUDOWANA BAZA TEKSTÓW Z NOWYMI FUNKCJAMI ---
+BAZA_TŁUMACZEŃ = {
+    "LUDZKIE_MARUDZENIE": {
+        "status": "🙄 WYKRYTO: CZŁOWIEK MARUDZI",
+        "kolor": "warning",
+        "teksty": [
+            "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!! Już nad tym pracują i niedługo komunikacja będzie obustronna, ale na razie jedynie możesz nagrywać pieska i słuchać co chodzi mu po głowie i reagować na to. Więc nagraj, gdy szczeka lub warczy. I nie zapomnij dać mu jego smakołyk by chciał do Ciebie mówić"
+        ]
+    },
+    "INTENSYWNE_NIUCHANIE": {
+        "status": "🕵️‍♂️ STATUS: ZAZDROŚĆ I DOCHODZENIE (Węch śledczy)",
+        "kolor": "error",
+        "teksty": [
+            "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?! Żądamy racjonalnego wyjaśnienia i przeprosin – najlepiej wykwintnego obiadu!"
+        ]
+    },
+    "ALARM_SIKU": {
+        "status": "🚨 PILNY ALERT: POTRZEBA FIZJOLOGICZNA!",
+        "kolor": "error",
+        "teksty": [
+            "Hej! Ignorujesz mnie już od ponad 4 godzin! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę, bo zaraz będzie katastrofa na dywanie!"
+        ]
+    },
+    "PORANNE_SKANOWANIE": {
+        "status": "🌅 PORANNE WYMUSZANIE (Pilne!)",
+        "kolor": "error",
+        "teksty": ["Sikać mi się chce, szybko!", "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz."]
+    },
+    "WYCIE_SAMOTNOSC": {
+        "status": "🏠 WYCIE W SAMOTNOŚCI",
+        "kolor": "warning",
+        "teksty": ["W co ja się wpakowałem...", "Ludzie, jestem sam!", "Ludzie, tutaj gwałcą, pomóżcie!"]
+    },
+    "EKSCYTACJA_SPACER": {
+        "status": "🔥 SKANOWANIE Z EKSCYTACJI",
+        "kolor": "info",
+        "teksty": ["Może znów spotkamy tę rudą? Niezła foczka!", "Już nie mogę się doczekać, jak wykopię dołek!"]
+    },
+    "WARCZENIE_AGRESJA": {
+        "status": "🔴 STATUS: AGRESJA OSTRZEGAWCZA",
+        "kolor": "error",
+        "teksty": ["Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!", "To mój teren! Zostaw mnie w spokoju!"]
+    },
+    "ZABAWA_NORMALNA": {
+        "status": "🟢 STATUS: ZABAWA / RADOŚĆ",
+        "kolor": "success",
+        "teksty": ["Teraz czas na parówkę! No dajesz!", "Rzuć piłkę! No rzuć!"]
+    }
+}
 
-# --- 3. URUCHOMIENIE BLOKADY I TWOJEGO KODU ---
-if sprawdz_haslo():
-    st.title("🐕 HauTłumacz v7.0")
-    st.subheader("Edycja: Opieka nad psem")
+st.title("🐕 HauTłumacz v7.0")
+st.subheader("Edycja: Opieka nad psem + Wykrywanie zazdrości")
 
-    TEKSTY = [
-        "Teraz czas na parówkę! No dajesz!",
-        "Rzuć piłkę! No rzuć!",
-        "Sikać mi się chce, szybko!",
-        "To mój teren! Zostaw mnie w spokoju!",
-        "No co jest, zauważ moje potrzeby."
+st.write("---")
+tryb = st.radio(
+    "👇 Co teraz robi pies lub człowiek?", 
+    [
+        "🐕 PIES (Szczekanie / Warczenie / Piszczenie)", 
+        "👃 INTENSYWNE OBWĘCHIWANIE (Niuchanie przy ubraniu)",
+        "👨 CZŁOWIEK (Wydawanie rozkazów)"
     ]
+)
+st.write("---")
 
-    tryb = st.radio(
-        "👇 Co teraz robi pies?", 
-        ["🐕 Szczeka", "👃 Niucha", "👨 Człowiek marudzi"]
-    )
+st.write("### 🎤 Kliknij ikonę mikrofonu poniżej i nagraj dźwięk:")
+audio_nagrane = st.audio_input("Nagraj dźwięk")
 
-    st.write("### 🎤 Nagraj dźwięk poniżej:")
-    audio_nagrane = st.audio_input("Nagraj psa")
+if audio_nagrane is not None:
+    raw_audio_bytes = audio_nagrane.read()
+    
+    # Obliczanie przerwy od ostatniego kliknięcia
+    teraz = datetime.now()
+    roznica_czasu = teraz - st.session_state.ostatnie_uzycie
+    st.session_state.ostatnie_uzycie = teraz  # Zapisujemy obecny czas jako ostatni
+    
+    with st.spinner('Przetwarzanie i generowanie głosu...'):
+        try:
+            # 1. WYBÓR: Tryb Człowieka
+            if "CZŁOWIEK" in tryb:
+                wynik = BAZA_TŁUMACZEŃ["LUDZKIE_MARUDZENIE"]
+                
+            # 2. WYBÓR: Tryb Intensywnego Niuchania
+            elif "OBWĘCHIWANIE" in tryb:
+                wynik = BAZA_TŁUMACZEŃ["INTENSYWNE_NIUCHANIE"]
+                
+            # 3. WYBÓR: Tryb Psa (z filtrem 4-godzinnym)
+            else:
+                # Sprawdzamy, czy aplikacja nie była używana przez ponad 4 godziny
+                # W celach testowych możesz zmienić timedelta(hours=4) na timedelta(seconds=10)
+                if roznica_czasu > timedelta(hours=4):
+                    wynik = BAZA_TŁUMACZEŃ["ALARM_SIKU"]
+                else:
+                    # Jeśli przerwa była krótka, analizujemy dźwięk tradycyjnie
+                    with wave.open(io.BytesIO(raw_audio_bytes), "rb") as wf:
+                        sampwidth = wf.getsampwidth()
+                        n_frames = wf.getnframes()
+                        data = wf.readframes(n_frames)
+                        
+                        if sampwidth == 2:
+                            audio_data = np.frombuffer(data, dtype=np.int16)
+                        else:
+                            audio_data = np.frombuffer(data, dtype=np.uint8).astype(np.int16) - 128
+                    
+                    amplituda = np.abs(audio_data)
+                    maksimum = np.max(amplituda) if len(amplituda) > 0 else 0
+                    
+                    if maksimum < 50:
+                        st.error("Cisza... Nagraj się głośniej.")
+                        st.stop()
+                    
+                    prog = maksimum * 0.15
+                    glosne_momenty = np.sum(amplituda > prog)
+                    procent_czasu = (glosne_momenty / len(amplituda)) * 100
+                    godzina_teraz = datetime.now().hour
+                    
+                    if procent_czasu < 8.0:
+                        wynik = BAZA_TŁUMACZEŃ["WARCZENIE_AGRESJA"]
+                    else:
+                        if 5 <= godzina_teraz <= 10:
+                            wynik = BAZA_TŁUMACZEŃ["PORANNE_SKANOWANIE"]
+                        elif procent_czasu > 18.0:
+                            wynik = BAZA_TŁUMACZEŃ["EKSCYTACJA_SPACER"]
+                        else:
+                            wynik = BAZA_TŁUMACZEŃ["ZABAWA_NORMALNA"]
+            
+            wylosowany_tekst = random.choice(wynik["teksty"])
+            
+            st.write("---")
+            if wynik["kolor"] == "success": st.success(wynik["status"])
+            elif wynik["kolor"] == "warning": st.warning(wynik["status"])
+            elif wynik["kolor"] == "error": st.error(wynik["status"])
+            else: st.info(wynik["status"])
+            
+            st.markdown(f"### 💬 Przemyślenia:")
+            st.subheader(f"*\"{wylosowany_tekst}\"*")
+            
+            # --- GENEROWANIE AUDIO ---
+            tts = gTTS(text=wylosowany_tekst, lang='pl')
+            fp = io.BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            
+            st.write("### 🔊 Posłuchaj odpowiedzi:")
+            st.audio(fp, format="audio/mp3", autoplay=True)
+            
+        except Exception as e:
+            st.error(f"Wystąpił problem: {e}")
 
-    if audio_nagrane is not None:
-        wylosowany_tekst = random.choice(TEKSTY)
-        
-        st.success("🟢 STATUS: PRZETŁUMACZONO")
-        st.markdown(f"### 💬 Przemyślenia:")
-        st.subheader(f"*\"{wylosowany_tekst}\"*")
-        
-        # Generowanie głosu audio w pamięci (zamiast zapisywania pliku na dysku)
-        tts = gTTS(text=wylosowany_tekst, lang='pl')
-        fp = io.BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        
-        st.write("### 🔊 Posłuchaj odpowiedzi:")
-        st.audio(fp, format="audio/mp3", autoplay=True)
+st.write("---")
+st.caption("HauTłumacz v7.0 - Bo dobro pieska jest na pierwszym miejscu.")
 
     st.write("---")
     st.caption("Bo dobro pieska jest na pierwszym miejscu.")
