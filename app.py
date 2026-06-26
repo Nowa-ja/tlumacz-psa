@@ -37,7 +37,7 @@ DODATKOWE_ZDANIA = [
     "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
-# Style CSS wprowadzające zielony szablon oraz pozycjonowanie nowego LOGO
+# Style CSS wprowadzające zielony szablon oraz pozycjonowanie nowego LOGO (Naprawione!)
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
@@ -49,7 +49,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SEKCJA LOGO Z TWOIM LINKIEM IMGBB ---
+# --- SEKCJA LOGO Z TWOIM BEZPOŚREDNIM LINKIEM IMGBB ---
 LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co"
 
 st.markdown(f"""
