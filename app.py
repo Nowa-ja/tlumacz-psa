@@ -3,7 +3,10 @@ import random
 from gtts import gTTS
 import io
 
-# --- 1. FUNKCJA OCHRONNA (CYFROWY OCHRONIARZ) ---
+# --- 1. CONFIG (Musi być jako PIERWSZA komenda Streamlit w pliku) ---
+st.set_page_config(page_title="HauTłumacz v7.0", page_icon="🐕")
+
+# --- 2. FUNKCJA OCHRONNA (CYFROWY OCHRONIARZ) ---
 def sprawdz_haslo():
     """Zwraca True, jeśli użytkownik wpisał poprawne hasło."""
     if "zalogowany" not in st.session_state:
@@ -23,10 +26,7 @@ def sprawdz_haslo():
         return False
     return True
 
-# Ustawienie konfiguracji strony (musi być wywołane na samym początku)
-st.set_page_config(page_title="HauTłumacz v7.0", page_icon="🐕")
-
-# --- 2. URUCHOMIENIE BLOKADY I TWOJEGO KODU ---
+# --- 3. URUCHOMIENIE BLOKADY I TWOJEGO KODU ---
 if sprawdz_haslo():
     st.title("🐕 HauTłumacz v7.0")
     st.subheader("Edycja: Opieka nad psem")
