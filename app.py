@@ -166,10 +166,10 @@ with col_foot2:
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         Pragnę jednak przestrzec Ciebie przed używaniem tego tłumacza, gdyż możesz dowiedzieć się na swój temat wielu przykrych informacji, szczególnie jeśli jesteś niedobry dla zwierząt. Jeśli traktujesz je z szacunkiem, na pewno żaden psiak nie powie nic złego na Twój temat.
 
-        W celu sprawnego działania strony hauhau.online:
+        W celu sprawnego działania strony hauhau.online informujemy, że:
         - Korzystanie z serwisu jest w 100% darmowe.
         - Nie jest wymagane zakładanie konta, podawanie haseł ani żadnych innych danych.
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta. 
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuzczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
