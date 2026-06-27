@@ -172,7 +172,7 @@ with col_foot2:
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
-        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną w celu ustalenia warunków tłumaczenia psysięgłego – zastrzegając, że czas odpowiedzi może być dłuższy. 
+        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną w celu ustalenia warunków tłumaczenia przysiągłego – zastrzegając, że czas odpowiedzi może być dłuższy. 
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
