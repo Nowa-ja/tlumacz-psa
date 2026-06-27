@@ -168,11 +168,12 @@ with col_foot2:
 
         W celu sprawnego działania strony hauhau.online:
         - Korzystanie z serwisu jest w 100% darmowe.
-        - Na stronie hauhau.online nie są gromadzone żadne dane ani dźwięki wydobywane przez zwierzęta. 
-        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+        - Nie jest wymagane zakładanie konta, podawanie haseł ani żadnych innych danych.
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta. 
+        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuzczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
-        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną w celu ustalenia warunków tłumaczenia przysiągłego – zastrzegając, że czas odpowiedzi może być dłuższy. 
+        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia przysiągłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
