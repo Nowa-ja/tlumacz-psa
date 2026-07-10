@@ -12,39 +12,45 @@ if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
 if "licznik_prob_ludzkich" not in st.session_state:
     st.session_state.licznik_prob_ludzkich = 0
-if "ostatnia_plec" not in st.session_state:
-    st.session_state.ostatnia_plec = None
 
-# --- BAZA TEKSTÓW DLA PSA ---
-WSZYSTKIE_TEKSTY = [
-    "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
-    "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
-    "Sikać mi się chce, szybko!",
-    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz.",
-    "W co ja się wpakowałem...",
-    "Ludzie, jestem sam!",
-    "Może znów spotkamy tę rudą? Niezła foczka!",
-    "Już nie mogę się doczekać, jak wykopię dołek!",
-    "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!",
-    "To mój teren! Zostaw mnie w spokoju!",
-    "Teraz czas na parówkę! No dajesz!",
-    "Rzuć piłkę! No rzuć!"
-]
+# --- INTELIGENTNA BAZA TEKSTÓW W ZALEŻNOŚCI OD SYTUACJI ---
+BAZA_SYTUACYJNA = {
+    "🐶 Popiskiwanie i ciche dźwięki": [
+        "Słyszę jak mlaskasz! Daj gryza, no nie bądź taki!",
+        "Skup się - będę szczekać drukowanymi.",
+        "W co ja się wpakowałem...",
+        "Ludzie, jestem sam!"
+    ],
+    "🐕 Zwykłe szczekanie / Radość": [
+        "Teraz czas na parówkę! No dajesz!",
+        "Rzuć piłkę! No rzuć!",
+        "Może znów spotkamy tę rudą? Niezła foczka!",
+        "Już nie mogę się doczekać, jak wykopię dołek!",
+        "Właśnie się dowiedziałem, że nasz sąsiad chodzi na lewiznę!"
+    ],
+    "🦮 Warczenie / Nerwowość": [
+        "To mój teren! Zostaw mnie w spokoju!",
+        "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!",
+        "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz.",
+        "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
+        "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!"
+    ],
+    "🦴 Żebranie przy stole": [
+        "Sikać mi się chce, szybko!",
+        "Czas ucieka, a miska sama się nie napełni.",
+        "I pamiętaj, widzę wszystko co tam jesz w kuchni!"
+    ]
+}
 
 DODATKOWE_ZDANIA = [
     "No i co ty na to człowiek? Przemyśl to sobie.",
     "A teraz masuj mnie za uchem, bo się obrażę.",
-    "I pamiętaj, widzę wszystko co tam jesz w kuchni!",
-    "Czas ucieka, a miska sama się nie napełni.",
     "Zrozumiano, czy mam szczeknąć to jeszcze raz?",
     "I nie patrz tak na mnie, tylko wyciągaj smaczki!",
     "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
-# --- SŁOWA KLUCZOWE TRYBU ROZKAZUJĄCEGO ---
-SLOWA_ROZKAZUJACE = ["podaj", "słuchaj", "siadaj", "przynieś", "włącz", "wyłącz", "milcz", "cicho", "powiedz", "siad", "bierz"]
-
-# --- STYLE CSS DLA ZIELONEGO INTERFEJSU I LOGO ---
+# --- STYLE CSS DLA ZIELONEGO INTERFEJSU ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
@@ -56,7 +62,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- WYŚWIETLANIE LOGO Z IMGBB ---
-# UWAGA: Podmień poniższy link na "Bezpośredni link" (Direct link) z końcówką .png/.jpg z ImgBB
+# Tutaj wkleisz swój odzyskany link w przyszłości
 LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
 
 st.markdown(f"""
@@ -68,7 +74,16 @@ st.markdown(f"""
 st.title("🐕 HauTłumacz v8.0")
 st.write("---")
 
-# ==================== SEKCJA GÓRNA: NAGRYWANIE ====================
+# ==================== NOWA SEKCJA: WYBÓR SYTUACJI ====================
+st.markdown("### 🔎 Co aktualnie robi Twój pies?")
+wybrana_sytuacja = st.selectbox(
+    "Wybierz zachowanie pupila, aby skalibrować algorytm:", 
+    options=list(BAZA_SYTUACYJNA.keys())
+)
+
+st.write("---")
+
+# ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
 col_rec, col_status = st.columns(2)
 
@@ -124,13 +139,14 @@ if audio_nagrane is not None:
         else:
             pelny_tekst = "W celu przetłumaczenia tego nagrania proszę o kontakt z twórcą programu - on jest na tyle szalony, by spróbować to przetłumaczyć - kontakt znajdziesz w regulaminie."
 
-    # 5. TRADYCYJNE TŁUMACZENIE PSA (Jeśli wszystko jest w porządku)
+    # 5. TRADYCYJNE TŁUMACZENIE PSA (Wykorzystujące wybraną sytuację)
     else:
-        st.session_state.licznik_prob_ludzkich = 0 # Resetujemy licznik, bo nagrano psa
+        st.session_state.licznik_prob_ludzkich = 0 # Reset licznika
         if roznica_czasu > timedelta(hours=4):
             wylosowany_tekst = "Hej! Ignorujesz mnie! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
         else:
-            wylosowany_tekst = random.choice(WSZYSTKIE_TEKSTY)
+            # Losujemy z puli dopasowanej do wyboru użytkownika
+            wylosowany_tekst = random.choice(BAZA_SYTUACYJNA[wybrana_sytuacja])
         pelny_tekst = f"{wylosowany_tekst} {random.choice(DODATKOWE_ZDANIA)}"
 
     # --- GENEROWANIE AUDIO PRZEZ LEKTORA ---
