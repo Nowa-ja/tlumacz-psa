@@ -114,7 +114,7 @@ if audio_nagrane is not None:
 
     # 3. INSTRUKCJA III (Punkt 1): Stado przekrzykujących się ludzi
     elif typ_glosu == "stado":
-        pelny_tekst = "Niestety nie mogę rozpoznać dźwięków wydawanych przez psy, gdyż zakłócają mi dźwięki wydawane przez stado sierściuchów. Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle foczek, suczek, baranów, osłów i sierściuchów. Proszę nagraj swojego pupila."
+        pelny_tekst = "Niestety nie mogę rozpoznać dźwięków wydawanych przez psy, gdyż zakłócają mi dźwięki wydawane przez innego ssaka. Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle. Proszę nagraj swojego pupila."
 
     # 4. INSTRUKCJA III (Punkt 2 i 3): Pozytywne emocje ludzkie
     elif typ_glosu == "pozytywne_emocje":
@@ -127,7 +127,7 @@ if audio_nagrane is not None:
     else:
         st.session_state.licznik_prob_ludzkich = 0 # Resetujemy licznik, bo nagrano psa
         if roznica_czasu > timedelta(hours=4):
-            wylosowany_tekst = "Hej! Ignorujesz mnie już od ponad 4 godzin! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
+            wylosowany_tekst = "Hej! Ignorujesz mnie! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
         else:
             wylosowany_tekst = random.choice(WSZYSTKIE_TEKSTY)
         pelny_tekst = f"{wylosowany_tekst} {random.choice(DODATKOWE_ZDANIA)}"
