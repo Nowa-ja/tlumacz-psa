@@ -118,7 +118,7 @@ if audio_nagrane is not None:
     # 2. INSTRUKCJA II: Głos Żeński + Tryb rozkazujący
     elif typ_glosu == "zenski_rozkaz":
         if st.session_state.licznik_prob_ludzkich == 1:
-            pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo w tle słyszę foczkę. Pamiętaj, że abym mógł przetłumaczyć dźwięki pieska, to w tle nie może być żadnych zakłóceń. Proszę nagraj swojego pupila."
+            pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo w tle słyszę barana. Pamiętaj, że abym mógł przetłumaczyć dźwięki pieska, to w tle nie może być żadnych zakłóceń. Proszę nagraj swojego pupila."
         elif st.session_state.licznik_prob_ludzkich == 2:
             pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo słyszę jakąś suczkę. Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle baranów, osłów i innych ulungów. Proszę nagraj swojego pupila."
         else:
