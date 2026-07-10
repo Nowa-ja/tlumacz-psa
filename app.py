@@ -55,8 +55,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- WYŚWIETLANIE NOWEGO LOGO Z IMGBB ---
-LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co"
+# --- WYŚWIETLANIE LOGO Z IMGBB ---
+# UWAGA: Podmień poniższy link na "Bezpośredni link" (Direct link) z końcówką .png/.jpg z ImgBB
+LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
+
 st.markdown(f"""
     <div class="logo-container">
         <img src="{LINK_DO_TWOJEGO_ZDJECIA}" width="180" class="logo-img">
@@ -88,7 +90,6 @@ if audio_nagrane is not None:
     pelny_tekst = ""
     
     # Symulujemy losowe wykrywanie typu mowy ludzkiej w tle (Instrukcja I, II, III)
-    # Można też wpisać tekst w wyszukiwarkę streamlit aby wymusić test, ale robimy to automatycznie:
     typ_glosu = random.choice(["pies", "meski_rozkaz", "zenski_rozkaz", "stado", "pozytywne_emocje"])
     
     # Zwiększamy licznik, jeśli nagrania następują szybko po sobie
@@ -164,16 +165,13 @@ with col_foot2:
         
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
-        Pragnę jednak przestrzec Ciebie przed używaniem tego tłumacza, gdyż możesz dowiedzieć się na swój temat wielu przykrych informacji, szczególnie jeśli jesteś niedobry dla zwierząt. Jeśli traktujesz je z szacunkiem, na pewno żaden psiak nie powie nic złego na Twój temat.
-
-        W celu sprawnego działania strony hauhau.online informujemy, że:
-        - Korzystanie z serwisu jest w 100% darmowe.
-        - Nie jest wymagane zakładanie konta, podawanie haseł ani żadnych innych danych.
+        
         - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
-        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuzczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
-        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia przysiągłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
+        
+        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia przysięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
