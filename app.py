@@ -13,34 +13,38 @@ if "ostatnie_uzycie" not in st.session_state:
 if "licznik_prob_ludzkich" not in st.session_state:
     st.session_state.licznik_prob_ludzkich = 0
 
-# --- INTELIGENTNA BAZA TEKSTÓW W ZALEŻNOŚCI OD SYTUACJI ---
-BAZA_SYTUACYJNA = {
-    "🐶 Popiskiwanie i ciche dźwięki": [
-        "Słyszę jak mlaskasz! Daj gryza, no nie bądź taki!",
-        "Skup się - będę szczekać drukowanymi.",
-        "W co ja się wpakowałem...",
-        "Ludzie, jestem sam!"
-    ],
-    "🐕 Zwykłe szczekanie / Radość": [
-        "Teraz czas na parówkę! No dajesz!",
-        "Rzuć piłkę! No rzuć!",
-        "Może znów spotkamy tę rudą? Niezła foczka!",
-        "Już nie mogę się doczekać, jak wykopię dołek!",
-        "Właśnie się dowiedziałem, że nasz sąsiad chodzi na lewiznę!"
-    ],
-    "🦮 Warczenie / Nerwowość": [
-        "To mój teren! Zostaw mnie w spokoju!",
-        "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!",
-        "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz.",
-        "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
-        "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!"
-    ],
-    "🦴 Żebranie przy stole": [
-        "Sikać mi się chce, szybko!",
-        "Czas ucieka, a miska sama się nie napełni.",
-        "I pamiętaj, widzę wszystko co tam jesz w kuchni!"
-    ]
-}
+# --- BAZY TEKSTÓW DOPASOWANE AUTOMATYCZNIE DO PORY DNIA ---
+
+# Wywoływane rano (5:00 - 11:59) - gdy człowiek leży, a pies popiskuje, bo chce na pole
+TEKSTY_PORANNE = [
+    "Pospiesz się, bo się posikam!",
+    "Szybko, bo za chwilę będzie śmierdząca niespodzianka!",
+    "Pospiesz się, bo narobię ci na ten nowy dywanik!",
+    "Sikać mi się chce, szybko!"
+]
+
+# Wywoływane wieczorem i w nocy (20:00 - 4:59) - symulacja wycia psa za ścianą
+TEKSTY_WIECZORNE_WYCIE = [
+    "Ludzie, jestem sam!",
+    "Niech ktoś pomoże!",
+    "Jest tam kto?",
+    "Pomocy tutaj nawaliłem i strasznie śmierdzi!",
+    "W co ja się wpakowałem...",
+    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz."
+]
+
+# Wywoływane w ciągu dnia (12:00 - 19:59) - normalne szczekanie, radość, żarty
+TEKSTY_DZIENNE = [
+    "Teraz czas na parówkę! No dajesz!",
+    "Rzuć piłkę! No rzuć!",
+    "Może znów spotkamy tę rudą? Niezła foczka!",
+    "Już nie mogę się doczekać, jak wykopię dołek!",
+    "Właśnie się dowiedziałem, że nasz sąsiad chodzi na lewiznę!",
+    "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
+    "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
+    "To mój teren! Zostaw mnie w spokoju!",
+    "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!"
+]
 
 DODATKOWE_ZDANIA = [
     "No i co ty na to człowiek? Przemyśl to sobie.",
@@ -62,7 +66,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- WYŚWIETLANIE LOGO Z IMGBB ---
-# Tutaj wkleisz swój odzyskany link w przyszłości
 LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
 
 st.markdown(f"""
@@ -74,17 +77,10 @@ st.markdown(f"""
 st.title("🐕 HauTłumacz v8.0")
 st.write("---")
 
-# ==================== NOWA SEKCJA: WYBÓR SYTUACJI ====================
-st.markdown("### 🔎 Co aktualnie robi Twój pies?")
-wybrana_sytuacja = st.selectbox(
-    "Wybierz zachowanie pupila, aby skalibrować algorytm:", 
-    options=list(BAZA_SYTUACYJNA.keys())
-)
-
-st.write("---")
-
 # ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Inteligentny algorytm automatycznie dopasuje kontekst.")
+
 col_rec, col_status = st.columns(2)
 
 with col_rec:
@@ -139,14 +135,22 @@ if audio_nagrane is not None:
         else:
             pelny_tekst = "W celu przetłumaczenia tego nagrania proszę o kontakt z twórcą programu - on jest na tyle szalony, by spróbować to przetłumaczyć - kontakt znajdziesz w regulaminie."
 
-    # 5. TRADYCYJNE TŁUMACZENIE PSA (Wykorzystujące wybraną sytuację)
+    # 5. TRADYCYJNE TŁUMACZENIE PSA (Pełna automatyzacja godzinowa)
     else:
-        st.session_state.licznik_prob_ludzkich = 0 # Reset licznika
-        if roznica_czasu > timedelta(hours=4):
-            wylosowany_tekst = "Hej! Ignorujesz mnie! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
+        st.session_state.licznik_prob_ludzkich = 0 
+        godzina_teraz = teraz.hour
+        
+        # AUTOMATYCZNY DOBÓR BAZY NA PODSTAWIE ZEGARA
+        if 5 <= godzina_teraz < 12:
+            wylosowany_tekst = random.choice(TEKSTY_PORANNE)
+        elif 20 <= godzina_teraz or godzina_teraz < 5:
+            wylosowany_tekst = random.choice(TEKSTY_WIECZORNE_WYCIE)
         else:
-            # Losujemy z puli dopasowanej do wyboru użytkownika
-            wylosowany_tekst = random.choice(BAZA_SYTUACYJNA[wybrana_sytuacja])
+            if roznica_czasu > timedelta(hours=4):
+                wylosowany_tekst = "Hej! Ignorujesz mnie! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
+            else:
+                wylosowany_tekst = random.choice(TEKSTY_DZIENNE)
+            
         pelny_tekst = f"{wylosowany_tekst} {random.choice(DODATKOWE_ZDANIA)}"
 
     # --- GENEROWANIE AUDIO PRZEZ LEKTORA ---
