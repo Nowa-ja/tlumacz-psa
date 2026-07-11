@@ -83,9 +83,9 @@ GRUPA_TEKSTOW_POLUDNIOWYCH = [
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Tak jak się umawialiśmy - jestem tutaj.",
     "O której to wracasz?",
-    "Fajnie, że jesteś, ale teraz szybko chodźmy.",
+    "Fajnie, że jesteś, ale teraz chodźmy na spacer.",
     "Jeszcze chwila a się sfajdam!",
-    "Chodź szybko to zobaczysz coś ciekawego.",
+    "Chodź teraz ze mną, zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
 
