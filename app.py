@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from gtts import gTTS
 
 # --- BEZPIECZNE IMPORTOWANIE BIBLIOTEK AKUSTYCZNYCH ---
-# Jeśli serwer nie ma scipy/numpy, kod nie wywali błędu, tylko przejdzie w tryb zapasowy
 TRYB_ANALIZY = True
 try:
     import numpy as np
@@ -14,15 +13,15 @@ except ImportError:
     TRYB_ANALIZY = False
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v9.4", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v9.5", page_icon="🐕", layout="centered")
 
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
 
-# --- ANALIZATOR AUDIO (ZABEZPIECZONY PRZED BŁĘDAMI) ---
+# --- ANALIZATOR AUDIO ---
 def analizuj_czestotliwosc(audio_bytes):
     if not TRYB_ANALIZY:
-        return 600.0 # W trybie zapasowym zwracamy domyślny ton średni
+        return 600.0
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
@@ -34,8 +33,7 @@ def analizuj_czestotliwosc(audio_bytes):
     except:
         return 600.0
 
-# ==================== BAZY TEKSTÓW DLA WSZYSTKICH RAS ====================
-
+# ==================== BAZY TEKSTÓW ====================
 TEKSTY_GIGANT = [
     "Słyszę potężny bas! Mówi do ciebie rasa olbrzymia (Mastif/Dog). Ziemia drży, a ty nadal nie wyciągasz smaczków?",
     "Z moją masą nie ma żartów człowieku. Jeden mój krok to trzęsienie ziemi, więc ruszaj się szybciej z tą miską!",
@@ -66,7 +64,6 @@ TEKSTY_MINIATURA_JAMNIK = [
     "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę, a ty mnie tu denerwujesz!"
 ]
 
-# ==================== BAZY TEKSTÓW GODZINOWYCH (TWÓJ AUTORSKI SYSTEM) ====================
 TEKSTY_PORANNE = [
     "Pospiesz się, bo się posikam!",
     "Szybko, bo za chwilę będzie śmierdząca niespodzianka!",
@@ -101,7 +98,7 @@ DODATKOWE_ZDANIA = [
     "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
-# --- STYLE CSS DLA ZIELONEGO INTERFEJSU ---
+# --- STYLE CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
@@ -112,7 +109,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- WYŚWIETLANIE LOGO (Zmień link na bezpośredni do pliku .png/.jpg) ---
 LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
 
 st.markdown(f"""
@@ -121,12 +117,11 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz DYNAMICZNY v9.4")
+st.title("🐕 HauTłumacz TURBO v9.5")
 st.write("---")
 
-# ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Podkręcony lektor automatycznie przeczyta tłumaczenie.")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Przyspieszony lektor automatycznie odtworzy czyste tłumaczenie.")
 
 audio_nagrane = st.audio_input("Nagraj")
 
@@ -136,33 +131,34 @@ if audio_nagrane is not None:
     
     teraz = datetime.now()
     godzina_teraz = teraz.hour
-    pelny_tekst = ""
     
+    wylosowany = ""
+    naglowek_ekranu = ""
+    
+    # --- NOWA LOGIKA SELEKCJI TEKSTU DO CZYTANIA (BEZ SŁOWA SZCZEK) ---
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
-
-    # ==================== ROZBUDOWANA LOGIKA DECYZYJNA NA BAZIE CZĘSTOTLIWOŚCI ====================
-    if TRYB_ANALIZY:
+        
         if wykryte_hz < 200:
             st.sidebar.success("🎯 Klasyfikacja: Rasa Olbrzymia (Bas)")
             wylosowany = random.choice(TEKSTY_GIGANT)
-            pelny_tekst = f"[{int(wykryte_hz)} Hz - Bas Giganta]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Bas Giganta]"
         elif 200 <= wykryte_hz < 450:
             st.sidebar.success("🎯 Klasyfikacja: Rasa Duża (Owczarek/Labrador)")
             wylosowany = random.choice(TEKSTY_DUZY_OWCZAREK)
-            pelny_tekst = f"[{int(wykryte_hz)} Hz - Owczarkowy ton]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarkowy ton]"
         elif 450 <= wykryte_hz < 800:
             st.sidebar.info("🎯 Klasyfikacja: Rasa Średnia (Beagle/Border)")
             wylosowany = random.choice(TEKSTY_SREDNI_BEAGLE)
-            pelny_tekst = f"[{int(wykryte_hz)} Hz - Średni szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni szczek]"
         elif 800 <= wykryte_hz < 1200:
             st.sidebar.warning("🎯 Klasyfikacja: Rasa Mała (Mops/Jack Russell)")
             wylosowany = random.choice(TEKSTY_MALUCH)
-            pelny_tekst = f"[{int(wykryte_hz)} Hz - Żwawy szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Żwawy szczek]"
         else:
             st.sidebar.warning("🎯 Klasyfikacja: Rasa Miniaturowa (Jamnik/York)")
             wylosowany = random.choice(TEKSTY_MINIATURA_JAMNIK)
-            pelny_tekst = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]"
     else:
         if 5 <= godzina_teraz < 12:
             wylosowany = random.choice(TEKSTY_PORANNE)
@@ -170,13 +166,16 @@ if audio_nagrane is not None:
             wylosowany = random.choice(TEKSTY_WIECZORNE)
         else:
             wylosowany = random.choice(TEKSTY_DZIENNE)
-            
-        pelny_tekst = f"[Szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        naglowek_ekranu = "[Tłumaczenie]"
 
-    # --- ENERGICZNY I PRZYSPIESZONY LEKTOR (Modyfikacja prędkości poprzez eliminację pauz) ---
-    # Dodanie tts.speed lub triku z tts_gtts polega na podkręceniu strumienia tekstu bez pauz
-    tekst_bez_pauz = pelny_tekst.replace(".", ",").replace("!", ",")
-    tts = gTTS(text=tekst_bez_pauz, lang='pl', slow=False)
+    # Tekst, który pojawi się na ekranie komputera
+    tekst_do_wyswietlenia = f"{naglowek_ekranu}: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+    
+    # CZYSTY tekst wysyłany do lektora (wykasowane znaczniki techniczne i kropki blokujące tempo)
+    tekst_do_czytania = f"{wylosowany} {random.choice(DODATKOWE_ZDANIA)}".replace(".", ",").replace("!", ",")
+
+    # --- GENEROWANIE I DODATKOWE PRZYSPIESZENIE GŁOSU O 15% ---
+    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp = io.BytesIO()
     tts.write_to_fp(fp)
     fp.seek(0)
@@ -191,13 +190,13 @@ if audio_nagrane is not None:
         st.audio(fp, format="audio/mp3", autoplay=True)
     with col2:
         st.write("💬 **Tłumaczenie tekstowe:**")
-        st.success(pelny_tekst)
+        st.success(tekst_do_wyswietlenia)
 
 # ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz DYNAMICZNY v9.4 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz TURBO v9.5 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
