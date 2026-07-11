@@ -1,57 +1,70 @@
 import streamlit as st
 import io
 import random
+import numpy as np
+from scipy.io import wavfile
 from datetime import datetime, timedelta
 from gtts import gTTS
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz v8.0", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v9.0", page_icon="🐕", layout="centered")
 
-# --- INICJALIZACJA LICZNIKÓW I PAMIĘCI ---
+# --- INICJALIZACJA PAMIĘCI ---
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
-if "licznik_prob_ludzkich" not in st.session_state:
-    st.session_state.licznik_prob_ludzkich = 0
 
-# --- BAZY TEKSTÓW DOPASOWANE AUTOMATYCZNIE DO PORY DNIA ---
+# --- PRAWDZIWY AKUSTYCZNY ANALIZATOR AUDIO (FFT) ---
+def analizuj_czestotliwosc(audio_bytes):
+    try:
+        # Odczytujemy plik wav przesłany przez st.audio_input
+        sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
+        
+        # Jeśli audio jest stereo, bierzemy tylko jeden kanał
+        if len(data.shape) > 1:
+            data = data[:, 0]
+            
+        # Wykonujemy Szybką Transformatę Fouriera (FFT)
+        fft_spectrum = np.fft.rfft(data)
+        freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
+        
+        # Znajdujemy częstotliwość, która ma największą głośność (szczyt)
+        szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
+        glowna_czestotliwosc = freq[szczytowa_indeks]
+        
+        return glowna_czestotliwosc
+    except Exception as e:
+        # W razie błędu odczytu (np. cisza) zwracamy losowy ton średni
+        return 600.0
 
-# Wywoływane rano (5:00 - 11:59) - gdy człowiek leży, a pies popiskuje, bo chce na pole
+# --- BAZY TEKSTÓW DOPASOWANE DO RASY I EMOCJI ---
+
+TEKSTY_NISKIE_OWCZAREK = [
+    "Uwaga, mówi potężny Owczarek! Szacunek musi być. Dawaj parówkę albo sam będę musiał ją sobie wziąć!",
+    "Słyszę, że szukasz guza człowieku. Zrób jeszcze jeden krok, a sam zaczniesz warczeć!",
+    "To mój teren! Weź ty się ogarnij i nie podchodź bez pozwolenia."
+]
+
+TEKSTY_WYSOKIE_JAMNIK = [
+    "Może i jestem mały jak parówka, ale gniew mam wielki! Cofnij się!",
+    "Jestem małym, wściekłym demonem! Nie ignoruj mojego piskliwego majestatu!",
+    "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę, a ty mnie tu denerwujesz!"
+]
+
 TEKSTY_PORANNE = [
     "Pospiesz się, bo się posikam!",
-    "Szybko, bo za chwilę będzie śmierdząca niespodzianka!",
-    "Pospiesz się, bo narobię ci na ten nowy dywanik!",
-    "Sikać mi się chce, szybko!"
+    "Szybko, bo za chwilę będzie śmierdząca niespodzianka na dywanie!",
+    "Sikać mi się chce, no ile można leżeć!"
 ]
 
-# Wywoływane wieczorem i w nocy (20:00 - 4:59) - symulacja wycia psa za ścianą
-TEKSTY_WIECZORNE_WYCIE = [
-    "Ludzie, jestem sam!",
-    "Niech ktoś pomoże!",
-    "Jest tam kto?",
-    "Pomocy tutaj nawaliłem i strasznie śmierdzi!",
-    "W co ja się wpakowałem...",
-    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz."
-]
-
-# Wywoływane w ciągu dnia (12:00 - 19:59) - normalne szczekanie, radość, żarty
-TEKSTY_DZIENNE = [
-    "Teraz czas na parówkę! No dajesz!",
-    "Rzuć piłkę! No rzuć!",
-    "Może znów spotkamy tę rudą? Niezła foczka!",
-    "Już nie mogę się doczekać, jak wykopię dołek!",
-    "Właśnie się dowiedziałem, że nasz sąsiad chodzi na lewiznę!",
-    "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
-    "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
-    "To mój teren! Zostaw mnie w spokoju!",
-    "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!"
+TEKSTY_WIECZORNE = [
+    "Ludzie, jestem sam! Niech ktoś pomoże!",
+    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz i nie przyjdziesz przytulić."
 ]
 
 DODATKOWE_ZDANIA = [
     "No i co ty na to człowiek? Przemyśl to sobie.",
     "A teraz masuj mnie za uchem, bo się obrażę.",
-    "Zrozumiano, czy mam szczeknąć to jeszcze raz?",
-    "I nie patrz tak na mnie, tylko wyciągaj smaczki!",
-    "Dobra, koniec gadania, bierzmy się za konkrety."
+    "Zrozumiano, czy mam szczeknąć to jeszcze raz?"
 ]
 
 # --- STYLE CSS DLA ZIELONEGO INTERFEJSU ---
@@ -65,7 +78,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- WYŚWIETLANIE LOGO Z IMGBB ---
+# --- WYŚWIETLANIE LOGO (Zmień link na bezpośredni do pliku graficznego!) ---
 LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
 
 st.markdown(f"""
@@ -74,84 +87,53 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz v8.0")
+st.title("🐕 HauTłumacz PRO v9.0")
 st.write("---")
 
 # ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Inteligentny algorytm automatycznie dopasuje kontekst.")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Prawdziwa analiza częstotliwości audio (FFT).")
 
-col_rec, col_status = st.columns(2)
+audio_nagrane = st.audio_input("Nagraj psa")
 
-with col_rec:
-    audio_nagrane = st.audio_input("Nagraj")
-
-with col_status:
-    if audio_nagrane is not None:
-        st.success("✅ Wykryto sygnał audio!")
-    else:
-        st.info("◀ Kliknij kropkę, aby zarejestrować dźwięk.")
-
-# ==================== LOGIKA DETEKCJI I INTELIGENCJI ALGORYTMU ====================
 if audio_nagrane is not None:
-    teraz = datetime.now()
-    roznica_czasu = teraz - st.session_state.ostatnie_uzycie
-    st.session_state.ostatnie_uzycie = teraz
+    # Pobieramy bajty z nagrania
+    audio_bytes = audio_nagrane.read()
     
+    # Mierzymy herce (Hz) przy użyciu transformaty Fouriera
+    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
+    
+    teraz = datetime.now()
+    godzina_teraz = teraz.hour
     pelny_tekst = ""
     
-    # Symulujemy losowe wykrywanie typu mowy ludzkiej w tle (Instrukcja I, II, III)
-    typ_glosu = random.choice(["pies", "meski_rozkaz", "zenski_rozkaz", "stado", "pozytywne_emocje"])
+    st.sidebar.metric(label="Wykryta częstotliwość dominująca", value=f"{int(wykryte_hz)} Hz")
+
+    # --- LOGIKA DECYZYJNA NA BAZIE CZĘSTOTLIWOŚCI (FIZYKA) ---
     
-    # Zwiększamy licznik, jeśli nagrania następują szybko po sobie
-    st.session_state.licznik_prob_ludzkich += 1
-    
-    # 1. INSTRUKCJA I: Głos Męski + Tryb rozkazujący
-    if typ_glosu == "meski_rozkaz":
-        if st.session_state.licznik_prob_ludzkich == 1:
-            pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo w tle słyszę barana. Pamiętaj, że abym mógł przetłumaczyć dźwięki pieska, to w tle nie może być żadnych zakłóceń. Proszę nagraj swojego pupila."
-        elif st.session_state.licznik_prob_ludzkich == 2:
-            pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo słyszę osła. Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle baranów, osłów i innych ulungów. Proszę nagraj swojego pupila."
-        else:
-            pelny_tekst = "Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle baranów, osłów i innych ulungów. Proszę nagraj swojego pupila."
-
-    # 2. INSTRUKCJA II: Głos Żeński + Tryb rozkazujący
-    elif typ_glosu == "zenski_rozkaz":
-        if st.session_state.licznik_prob_ludzkich == 1:
-            pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo w tle słyszę barana. Pamiętaj, że abym mógł przetłumaczyć dźwięki pieska, to w tle nie może być żadnych zakłóceń. Proszę nagraj swojego pupila."
-        elif st.session_state.licznik_prob_ludzkich == 2:
-            pelny_tekst = "Niestety nie mogę przetłumaczyć nagrania, bo słyszę jakąś suczkę. Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle baranów, osłów i innych ulungów. Proszę nagraj swojego pupila."
-        else:
-            pelny_tekst = "Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle foczek, suczek, baranów i osłów. Proszę nagraj swojego pupila."
-
-    # 3. INSTRUKCJA III (Punkt 1): Stado przekrzykujących się ludzi
-    elif typ_glosu == "stado":
-        pelny_tekst = "Niestety nie mogę rozpoznać dźwięków wydawanych przez psy, gdyż zakłócają mi dźwięki wydawane przez innego ssaka. Przypominam, że jakość tłumaczenia zależna jest od czystego dźwięku zwierzaka bez żadnych zakłóceń w tle. Proszę nagraj swojego pupila."
-
-    # 4. INSTRUKCJA III (Punkt 2 i 3): Pozytywne emocje ludzkie
-    elif typ_glosu == "pozytywne_emocje":
-        if st.session_state.licznik_prob_ludzkich <= 1:
-            pelny_tekst = "Osioł, ewidentnie słyszę osła, więc nie podejmuję się tego tłumaczenia. Profesjonalnym tłumaczeniem osłów zajmuje się psychiatra."
-        else:
-            pelny_tekst = "W celu przetłumaczenia tego nagrania proszę o kontakt z twórcą programu - on jest na tyle szalony, by spróbować to przetłumaczyć - kontakt znajdziesz w regulaminie."
-
-    # 5. TRADYCYJNE TŁUMACZENIE PSA (Pełna automatyzacja godzinowa)
-    else:
-        st.session_state.licznik_prob_ludzkich = 0 
-        godzina_teraz = teraz.hour
+    # 1. WYKRYTO BARDZO NISKI TON (Poniżej 300 Hz) -> Owczarek / Duży pies warczy
+    if wykryte_hz < 300:
+        st.sidebar.success("🎯 Klasyfikacja: Niski ton (Duży pies / Warczenie)")
+        wylosowany = random.choice(TEKSTY_NISKIE_OWCZAREK)
+        pelny_tekst = f"[{int(wykryte_hz)} Hz - Owczarkowy bas]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
         
-        # AUTOMATYCZNY DOBÓR BAZY NA PODSTAWIE ZEGARA
+    # 2. WYKRYTO BARDZO WYSOKI TON (Powyżej 1200 Hz) -> Jamnik / Pisk / Skomlenie
+    elif wykryte_hz > 1200:
+        st.sidebar.warning("🎯 Klasyfikacja: Wysoki ton (Mały pies / Pisk)")
+        wylosowany = random.choice(TEKSTY_WYSOKIE_JAMNIK)
+        pelny_tekst = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        
+    # 3. TON ŚREDNI -> Sprawdzamy czas systemowy (Tradycyjne tłumaczenie godzinowe)
+    else:
+        st.sidebar.info("🎯 Klasyfikacja: Ton średni (Klasyczny szczek)")
         if 5 <= godzina_teraz < 12:
-            wylosowany_tekst = random.choice(TEKSTY_PORANNE)
+            wylosowany = random.choice(TEKSTY_PORANNE)
         elif 20 <= godzina_teraz or godzina_teraz < 5:
-            wylosowany_tekst = random.choice(TEKSTY_WIECZORNE_WYCIE)
+            wylosowany = random.choice(TEKSTY_WIECZORNE)
         else:
-            if roznica_czasu > timedelta(hours=4):
-                wylosowany_tekst = "Hej! Ignorujesz mnie! Ta żywiołowa reakcja, piszczenie i obwąchiwanie to nie zabawa – natychmiast zbieraj się i wyjdź ze mną na siku lub kupkę!"
-            else:
-                wylosowany_tekst = random.choice(TEKSTY_DZIENNE)
+            wylosowany = "Rzuć piłkę! No dajesz! Albo chociaż daj parówkę!"
             
-        pelny_tekst = f"{wylosowany_tekst} {random.choice(DODATKOWE_ZDANIA)}"
+        pelny_tekst = f"[Szczek średni]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
 
     # --- GENEROWANIE AUDIO PRZEZ LEKTORA ---
     tts = gTTS(text=pelny_tekst, lang='pl')
@@ -159,17 +141,15 @@ if audio_nagrane is not None:
     tts.write_to_fp(fp)
     fp.seek(0)
     
-    # ==================== SEKCJA DOLNA: WYNIK ====================
+    # ==================== WYNIK DETEKCJI ====================
     st.write("---")
-    st.markdown("### 📊 Wynik analizy")
+    st.markdown("### 📊 Wynik analizy akustyczno-humorystycznej")
+    col1, col2 = st.columns(2)
     
-    col_glosnik, col_tekst = st.columns(2)
-    
-    with col_glosnik:
+    with col1:
         st.write("🔊 **Odtwórz głosowo:**")
         st.audio(fp, format="audio/mp3", autoplay=True)
-        
-    with col_tekst:
+    with col2:
         st.write("💬 **Tłumaczenie tekstowe:**")
         st.success(pelny_tekst)
 
@@ -177,7 +157,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz v8.0 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz PRO v9.0 - Stabilna wersja chmurowa z FFT.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
