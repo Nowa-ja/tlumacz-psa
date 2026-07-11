@@ -13,7 +13,7 @@ except ImportError:
     TRYB_ANALIZY = False
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v10.3", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v10.4", page_icon="🐕", layout="centered")
 
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state:
@@ -94,7 +94,6 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
-
 TEKSTY_WIECZORNE = [
     "Jeszcze tylko kupkę, siku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
@@ -130,9 +129,6 @@ DODATKOWE_ZDANIA = [
     "Sąsiad wyżarł mi wszystko z miski."
 ]
 
-# ==================== NOWA SEKCOJA PARODII HODOWLANEJ DLA LUDZI ====================
-FONETYCZNY_BARAN = "Bęęęęęęęęęęęęęęę!"
-FONETYCZNA_KROWA = "Móóóóóóóóóóóóóóóó!"
 GRUPA_TEKSTOW_NEUTRALNYCH = [
     "Co mam powtórzyć, czego nie zrozumiałeś - miska jest pusta?",
     "Ja dwa razy powtarzać nie będę.",
@@ -172,7 +168,6 @@ TEKSTY_DUZY_OWCZAREK_ZABAWA = [
     "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
     "A teraz rzuć swojską!"
 ]
-
 TEKSTY_SREDNI_BEAGLE = [
     "Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.",
     "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!",
@@ -198,10 +193,12 @@ ZDANIA_ROZKAZUJACE = [
     "Czy ty już się zaszczepiłeś na głupotę?"
 ]
 
-# --- POMOCNICZA FUNKCJA DO LOSOWANIA BEZ POWTÓRZEŃ I OBSŁUGI WYCZERPANIA ---
+FONETYCZNY_BARAN = "Bęęęęęęęęęęęęęęę!"
+FONETYCZNA_KROWA = "Móóóóóóóóóóóóóóóó!"
+
+# --- POMOCNICZA FUNKCJA DO LOSOWANIA ---
 def pobierz_tekst_kontekstowy(baza, nazwa_puli):
     dostepne = [t for t in baza if t not in st.session_state.wykorzystane_teksty]
-    
     if not dostepne:
         for t in baza:
             st.session_state.wykorzystane_teksty.discard(t)
@@ -238,14 +235,10 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz FARMA v10.3")
+st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
 
-st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. System automatycznie wykryje fałszywe szczekanie ludzi.")
-
 audio_nagrane = st.audio_input("Nagraj")
-
 if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
     wykryte_hz = analizuj_czestotliwosc(audio_bytes)
@@ -256,7 +249,6 @@ if audio_nagrane is not None:
     uzyj_dodatkowego = True
     uzyj_neutralnego = False
     
-    # Definiowanie stref czasowych
     is_morning = time(4, 30) <= teraz < time(7, 0)
     is_pre_noon = time(7, 0) <= teraz < time(11, 0)
     is_noon = time(11, 0) <= teraz < time(14, 0)
@@ -267,14 +259,9 @@ if audio_nagrane is not None:
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    # ==================== LOGIKA DETEKCJI EMOCJI, GABARYTÓW I PASTERSTWA ====================
-    
-    # 🚨 INTEGRACJA TRYBU BARANA I KROWY: Wykrywanie pasma mowy ludzkiej (85 Hz - 255 Hz)
     if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
         st.session_state.licznik_ludzki += 1
         uzyj_dodatkowego = False
-        
-        # Rozróżniamy płeć po hercach (Mężczyzna zwykle < 165 Hz, Kobieta > 165 Hz)
         if wykryte_hz < 165:
             zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
@@ -291,73 +278,53 @@ if audio_nagrane is not None:
         else:
             wylosowany = f"{zwierze} {zwierze} A teraz powiedz to drukowanymi, patrząc w lustro! Człowieku, aplikacja służy do tłumaczenia zwierzaków, więc weź na wstrzymanie!"
             st.session_state.licznik_ludzki = 0
-            
-    # 🎯 STANDARDOWA LOGIKA DETEKCJI PSA
     else:
         st.session_state.licznik_ludzki = 0
-        
-        # 1. TEKSTY GIGANT (Zdenerwowanie/Stres -> Poniżej 200 Hz)
         if TRYB_ANALIZY and wykryte_hz < 200:
-            st.sidebar.success("🎯 Klasyfikacja: Gigant (Zdenerwowany)")
             wylosowany = pobierz_tekst_kontekstowy(TEKSTY_GIGANT_STRES, "gigant")
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Gigant]"
             uzyj_neutralnego = True 
-            
-        # 2. TEKSTY DUŻY OWCZAREK (Zabawa -> 200 Hz - 450 Hz)
         elif TRYB_ANALIZY and 200 <= wykryte_hz < 450:
-            st.sidebar.success("🎯 Klasyfikacja: Duży pies (Zabawa)")
             wylosowany = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA, "duzy")
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
-            
-        # 3. MINIATURA JAMNIK (Powyżej 1200 Hz)
         elif TRYB_ANALIZY and wykryte_hz > 1200:
-            st.sidebar.warning("🎯 Klasyfikacja: Miniatura (Jamnik/York)")
             wylosowany = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK, "miniatura")
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
-            
-        # 4. PASMO ŚREDNIE -> STREFY CZASOWE DO DOBY
         else:
             if is_morning:
                 wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE, "rano")
                 naglowek_ekranu = "[Poranny Bieguniem]"
                 uzyj_dodatkowego = False
-                if st.session_state.get("wyczerpana_rano", False):
-                    uzyj_neutralnego = True
+                if st.session_state.get("wyczerpana_rano", False): uzyj_neutralnego = True
             elif is_pre_noon:
                 wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH, "przedpoludnie")
                 naglowek_ekranu = "[Przedpołudniowy Samotnik]"
-                if st.session_state.get("wyczerpana_przedpoludnie", False):
-                    uzyj_neutralnego = True
+                if st.session_state.get("wyczerpana_przedpoludnie", False): uzyj_neutralnego = True
             elif is_noon:
                 if st.session_state.ostatnie_pokazywane_zdanie == "Ty mi rzucaj smakołyk, a ja będę łapać.":
                     wylosowany = "Chyba, że wolisz żebym ciebie podgryzał."
                 else:
                     wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH, "poludnie")
                 naglowek_ekranu = "[Południowa Rozgrywka]"
-                if st.session_state.get("wyczerpana_poludnie", False):
-                    uzyj_neutralnego = True
+                if st.session_state.get("wyczerpana_poludnie", False): uzyj_neutralnego = True
             elif is_afternoon:
                 wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH, "popoludnie")
                 naglowek_ekranu = "[Popołudniowa Radość]"
-                if st.session_state.get("wyczerpana_popoludnie", False):
-                    uzyj_neutralnego = True
+                if st.session_state.get("wyczerpana_popoludnie", False): uzyj_neutralnego = True
             elif is_evening:
                 wylosowany = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE, "wieczor")
                 naglowek_ekranu = "[Wieczorny Relaks]"
-                if st.session_state.get("wyczerpana_wieczor", False):
-                    uzyj_neutralnego = True
+                if st.session_state.get("wyczerpana_wieczor", False): uzyj_neutralnego = True
             elif is_night:
                 wylosowany = pobierz_tekst_kontekstowy(TEKSTY_NOCNE, "noc")
                 naglowek_ekranu = "[Nocny Alarm]"
                 uzyj_dodatkowego = False
                 
-            # W strefach dziennych rzucamy kontrą na komendy rozkazujące
             if (is_pre_noon or is_noon or is_afternoon) and random.random() < 0.3:
                 wylosowany = pobierz_tekst_kontekstowy(ZDANIA_ROZKAZUJACE, "rozkazy")
 
     st.session_state.ostatnie_pokazywane_zdanie = wylosowany
 
-    # --- BUDOWANIE STRUKTURY MIXU ZDAŃ BEZ CHOCHLIKÓW ---
     slowa_alarmowe = ["sfajdam", "posikam", "pęcherz", "kupkę", "srać", "rozerwie", "zrąbać"]
     if any(slowo in wylosowany.lower() for slowo in slowa_alarmowe):
         uzyj_dodatkowego = False
@@ -365,26 +332,18 @@ if audio_nagrane is not None:
     final_tekst = wylosowany
     
     if uzyj_dodatkowego and not (TRYB_ANALIZY and 85 <= wykryte_hz <= 255):
-        if is_morning:
-            final_tekst += f" {DODATKOWE_ZDANIA}"
-        elif is_afternoon:
-            final_tekst += f" {random.choice([DODATKOWE_ZDANIA, DODATKOWE_ZDANIA])}"
-        else:
-            final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
+        if is_morning: final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
+        elif is_afternoon: final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
+        else: final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
             
     if uzyj_neutralnego and not is_evening and not is_night:
         pula_neutralna = GRUPA_TEKSTOW_NEUTRALNYCH.copy()
-        if not is_morning and not is_evening:
-            pula_neutralna = [t for t in pula_neutralna if "dwa razy" not in t.lower()]
-        if is_morning:
-            pula_neutralna = [t for t in pula_neutralna if "miska jest pusta" not in t.lower()]
-            
-        if pula_neutralna:
-            final_tekst += f" {random.choice(pula_neutralna)}"
+        if not is_morning: pula_neutralna = [t for t in pula_neutralna if "dwa razy" not in t.lower()]
+        if is_morning: pula_neutralna = [t for t in pula_neutralna if "miska jest pusta" not in t.lower()]
+        if pula_neutralna: final_tekst += f" {random.choice(pula_neutralna)}"
 
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
 
-    # --- GENEROWANIE AUDIO TURBO ---
     tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp_raw = io.BytesIO()
     tts.write_to_fp(fp_raw)
@@ -396,7 +355,6 @@ if audio_nagrane is not None:
             skurczony_rozmiar = int(len(data) / 1.15)
             indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
             przyspieszone_data = data[indeksy]
-            
             fp = io.BytesIO()
             wavfile.write(fp, sample_rate, przyspieszone_data)
             fp.seek(0)
@@ -405,11 +363,9 @@ if audio_nagrane is not None:
     else:
         fp = fp_raw
     
-    # ==================== SEKCJA WYNIKU ====================
     st.write("---")
     st.markdown("### 📊 Wynik analizy")
     col1, col2 = st.columns(2)
-    
     with col1:
         st.write("🔊 **Odtwórz głosowo:**")
         st.audio(fp, format="audio/wav", autoplay=True)
@@ -421,7 +377,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz v10.3 - Stabilna wersja chmurowa z parodią pasterstwa.")
+    st.caption("HauTłumacz v10.4 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
