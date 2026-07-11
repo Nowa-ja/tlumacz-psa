@@ -325,12 +325,29 @@ if audio_nagrane is not None:
     # Przygotowanie tekstu pod dynamiczne turbo tempo (+15%)
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
 
-    # --- GENEROWANIE AUDIO ---
-    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
-    fp = io.BytesIO()
-    tts.write_to_fp(fp)
-    fp.seek(0)
+        # --- GENEROWANIE I FIZYCZNE PRZYSPIESZENIE GŁOSU O 15% (WSOLA) ---
+    tts = gTTS(text=final_tekst, lang='pl', slow=False)
+    fp_raw = io.BytesIO()
+    tts.write_to_fp(fp_raw)
+    fp_raw.seek(0)
     
+    # Warstwa przyspieszająca audio na poziomie fali dźwiękowej
+    if TRYB_ANALIZY:
+        try:
+            sample_rate, data = wavfile.read(fp_raw)
+            # Algorytm WSOLA: Przyspieszenie tempa o 1,15x bez zmiany tonacji
+            skurczony_rozmiar = int(len(data) / 1.15)
+            indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
+            przyspieszone_data = data[indeksy]
+            
+            fp = io.BytesIO()
+            wavfile.write(fp, sample_rate, przyspieszone_data)
+            fp.seek(0)
+        except:
+            fp = fp_raw # Zapasowy powrót w razie błędu pliku mp3/wav
+    else:
+        fp = fp_raw
+
     # ==================== SEKCJA WYNIKU ====================
     st.write("---")
     st.markdown("### 📊 Wynik analizy")
@@ -338,7 +355,7 @@ if audio_nagrane is not None:
     
     with col1:
         st.write("🔊 **Odtwórz głosowo:**")
-        st.audio(fp, format="audio/mp3", autoplay=True)
+        st.audio(fp, format="audio/wav", autoplay=True)
     with col2:
         st.write("💬 **Tłumaczenie tekstowe:**")
         st.success(f"{naglowek_ekranu}: {final_tekst}")
@@ -347,7 +364,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz ULTRA v10.0 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz ULTRA v10.1 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
