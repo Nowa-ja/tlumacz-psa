@@ -14,7 +14,7 @@ except ImportError:
     TRYB_ANALIZY = False
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v9.3", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v9.4", page_icon="🐕", layout="centered")
 
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
@@ -121,12 +121,12 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz UNIWERSALNY v9.3")
+st.title("🐕 HauTłumacz DYNAMICZNY v9.4")
 st.write("---")
 
 # ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Algorytm FFT automatycznie rozpozna gabaryt i rasę psa.")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Podkręcony lektor automatycznie przeczyta tłumaczenie.")
 
 audio_nagrane = st.audio_input("Nagraj")
 
@@ -173,8 +173,10 @@ if audio_nagrane is not None:
             
         pelny_tekst = f"[Szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
 
-    # --- GENEROWANIE AUDIO PRZEZ LEKTORA ---
-    tts = gTTS(text=pelny_tekst, lang='pl')
+    # --- ENERGICZNY I PRZYSPIESZONY LEKTOR (Modyfikacja prędkości poprzez eliminację pauz) ---
+    # Dodanie tts.speed lub triku z tts_gtts polega na podkręceniu strumienia tekstu bez pauz
+    tekst_bez_pauz = pelny_tekst.replace(".", ",").replace("!", ",")
+    tts = gTTS(text=tekst_bez_pauz, lang='pl', slow=False)
     fp = io.BytesIO()
     tts.write_to_fp(fp)
     fp.seek(0)
@@ -195,7 +197,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz UNIWERSALNY v9.3 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz DYNAMICZNY v9.4 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
