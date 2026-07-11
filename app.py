@@ -14,7 +14,7 @@ except ImportError:
     TRYB_ANALIZY = False
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v9.2", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v9.3", page_icon="🐕", layout="centered")
 
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
@@ -34,19 +34,39 @@ def analizuj_czestotliwosc(audio_bytes):
     except:
         return 600.0
 
-# --- BAZY TEKSTÓW DOPASOWANE DO RASY I EMOCJI ---
-TEKSTY_NISKIE_OWCZAREK = [
-    "Uwaga, mówi potężny Owczarek! Szacunek musi być. Dawaj parówkę albo sam będę musiał ją sobie wziąć!",
-    "Słyszę, że szukasz guza człowieku. Zrób jeszcze jeden krok, a sam zaczniesz warczeć!",
-    "To mój teren! Weź ty się ogarnij i nie podchodź bez pozwolenia."
+# ==================== BAZY TEKSTÓW DLA WSZYSTKICH RAS ====================
+
+TEKSTY_GIGANT = [
+    "Słyszę potężny bas! Mówi do ciebie rasa olbrzymia (Mastif/Dog). Ziemia drży, a ty nadal nie wyciągasz smaczków?",
+    "Z moją masą nie ma żartów człowieku. Jeden mój krok to trzęsienie ziemi, więc ruszaj się szybciej z tą miską!",
+    "Uwaga, nadchodzi król kanapy! Ustąp miejsca gabarytom, bo zaraz się na tobie położę."
 ]
 
-TEKSTY_WYSOKIE_JAMNIK = [
+TEKSTY_DUZY_OWCZAREK = [
+    "Uwaga, mówi potężny Owczarek/Labrador! Szacunek musi być. Dawaj parówkę albo sam ją sobie wezmę!",
+    "Słyszę, że szukasz guza człowieku. Zrób jeszcze jeden krok, a sam zaczniesz warczeć!",
+    "To mój teren! Weź ty się ogarnij i nie podchodź bez pozwolenia, dopóki nie masz meldunku."
+]
+
+TEKSTY_SREDNI_BEAGLE = [
+    "Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.",
+    "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!",
+    "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"
+]
+
+TEKSTY_MALUCH = [
+    "Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!",
+    "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz.",
+    "Właśnie opracowałem plan, jak przejąć kontrolę nad lodówką. Potrzebuję tylko twojego odcisku palca."
+]
+
+TEKSTY_MINIATURA_JAMNIK = [
     "Może i jestem mały jak parówka, ale gniew mam wielki! Cofnij się!",
-    "Jestem małym, wściekłym demonem! Nie ignoruj mojego piskliwego majestatu!",
+    "Jestem małym, wściekłym demonem! Nie ignoruj mojego piskliwego majestatu, bo ugryzę w kostkę!",
     "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę, a ty mnie tu denerwujesz!"
 ]
 
+# ==================== BAZY TEKSTÓW GODZINOWYCH (TWÓJ AUTORSKI SYSTEM) ====================
 TEKSTY_PORANNE = [
     "Pospiesz się, bo się posikam!",
     "Szybko, bo za chwilę będzie śmierdząca niespodzianka!",
@@ -68,11 +88,9 @@ TEKSTY_DZIENNE = [
     "Rzuć piłkę! No rzuć!",
     "Może znów spotkamy tę rudą? Niezła foczka!",
     "Już nie mogę się doczekać, jak wykopię dołek!",
-    "Właśnie się dowiedziałem, że nasz sąsiad chodzi na lewiznę!",
     "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
     "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
-    "To mój teren! Zostaw mnie w spokoju!",
-    "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!"
+    "To mój teren! Zostaw mnie w spokoju!"
 ]
 
 DODATKOWE_ZDANIA = [
@@ -103,12 +121,12 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz PRO v9.2")
+st.title("🐕 HauTłumacz UNIWERSALNY v9.3")
 st.write("---")
 
 # ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Inteligentny algorytm automatycznie dopasuje kontekst.")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Algorytm FFT automatycznie rozpozna gabaryt i rasę psa.")
 
 audio_nagrane = st.audio_input("Nagraj")
 
@@ -123,15 +141,29 @@ if audio_nagrane is not None:
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    # --- LOGIKA DECYZYJNA NA BAZIE CZĘSTOTLIWOŚCI LUB ZEGARKA ---
-    if TRYB_ANALIZY and wykryte_hz < 300:
-        wylosowany = random.choice(TEKSTY_NISKIE_OWCZAREK)
-        pelny_tekst = f"[{int(wykryte_hz)} Hz - Owczarkowy bas]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
-    elif TRYB_ANALIZY and wykryte_hz > 1200:
-        wylosowany = random.choice(TEKSTY_WYSOKIE_JAMNIK)
-        pelny_tekst = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+    # ==================== ROZBUDOWANA LOGIKA DECYZYJNA NA BAZIE CZĘSTOTLIWOŚCI ====================
+    if TRYB_ANALIZY:
+        if wykryte_hz < 200:
+            st.sidebar.success("🎯 Klasyfikacja: Rasa Olbrzymia (Bas)")
+            wylosowany = random.choice(TEKSTY_GIGANT)
+            pelny_tekst = f"[{int(wykryte_hz)} Hz - Bas Giganta]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        elif 200 <= wykryte_hz < 450:
+            st.sidebar.success("🎯 Klasyfikacja: Rasa Duża (Owczarek/Labrador)")
+            wylosowany = random.choice(TEKSTY_DUZY_OWCZAREK)
+            pelny_tekst = f"[{int(wykryte_hz)} Hz - Owczarkowy ton]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        elif 450 <= wykryte_hz < 800:
+            st.sidebar.info("🎯 Klasyfikacja: Rasa Średnia (Beagle/Border)")
+            wylosowany = random.choice(TEKSTY_SREDNI_BEAGLE)
+            pelny_tekst = f"[{int(wykryte_hz)} Hz - Średni szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        elif 800 <= wykryte_hz < 1200:
+            st.sidebar.warning("🎯 Klasyfikacja: Rasa Mała (Mops/Jack Russell)")
+            wylosowany = random.choice(TEKSTY_MALUCH)
+            pelny_tekst = f"[{int(wykryte_hz)} Hz - Żwawy szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        else:
+            st.sidebar.warning("🎯 Klasyfikacja: Rasa Miniaturowa (Jamnik/York)")
+            wylosowany = random.choice(TEKSTY_MINIATURA_JAMNIK)
+            pelny_tekst = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
     else:
-        # Losowanie godzinowe (tak jak w oryginalnym kodzie)
         if 5 <= godzina_teraz < 12:
             wylosowany = random.choice(TEKSTY_PORANNE)
         elif 20 <= godzina_teraz or godzina_teraz < 5:
@@ -139,8 +171,7 @@ if audio_nagrane is not None:
         else:
             wylosowany = random.choice(TEKSTY_DZIENNE)
             
-        prefiks = f"[{int(wykryte_hz)} Hz - Szczek]" if TRYB_ANALIZY else "[Szczek]"
-        pelny_tekst = f"{prefiks}: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        pelny_tekst = f"[Szczek]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
 
     # --- GENEROWANIE AUDIO PRZEZ LEKTORA ---
     tts = gTTS(text=pelny_tekst, lang='pl')
@@ -164,7 +195,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz PRO v9.2 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz UNIWERSALNY v9.3 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
