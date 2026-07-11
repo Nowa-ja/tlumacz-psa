@@ -1,43 +1,40 @@
 import streamlit as st
 import io
 import random
-import numpy as np
-from scipy.io import wavfile
 from datetime import datetime, timedelta
 from gtts import gTTS
 
-# --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v9.0", page_icon="🐕", layout="centered")
+# --- BEZPIECZNE IMPORTOWANIE BIBLIOTEK AKUSTYCZNYCH ---
+# Jeśli serwer nie ma scipy/numpy, kod nie wywali błędu, tylko przejdzie w tryb zapasowy
+TRYB_ANALIZY = True
+try:
+    import numpy as np
+    from scipy.io import wavfile
+except ImportError:
+    TRYB_ANALIZY = False
 
-# --- INICJALIZACJA PAMIĘCI ---
+# --- BEZPIECZNA KONFIGURACJA STRONY ---
+st.set_page_config(page_title="HauTłumacz PRO v9.2", page_icon="🐕", layout="centered")
+
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
 
-# --- PRAWDZIWY AKUSTYCZNY ANALIZATOR AUDIO (FFT) ---
+# --- ANALIZATOR AUDIO (ZABEZPIECZONY PRZED BŁĘDAMI) ---
 def analizuj_czestotliwosc(audio_bytes):
+    if not TRYB_ANALIZY:
+        return 600.0 # W trybie zapasowym zwracamy domyślny ton średni
     try:
-        # Odczytujemy plik wav przesłany przez st.audio_input
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
-        
-        # Jeśli audio jest stereo, bierzemy tylko jeden kanał
         if len(data.shape) > 1:
             data = data[:, 0]
-            
-        # Wykonujemy Szybką Transformatę Fouriera (FFT)
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
-        
-        # Znajdujemy częstotliwość, która ma największą głośność (szczyt)
         szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
-        glowna_czestotliwosc = freq[szczytowa_indeks]
-        
-        return glowna_czestotliwosc
-    except Exception as e:
-        # W razie błędu odczytu (np. cisza) zwracamy losowy ton średni
+        return freq[szczytowa_indeks]
+    except:
         return 600.0
 
 # --- BAZY TEKSTÓW DOPASOWANE DO RASY I EMOCJI ---
-
 TEKSTY_NISKIE_OWCZAREK = [
     "Uwaga, mówi potężny Owczarek! Szacunek musi być. Dawaj parówkę albo sam będę musiał ją sobie wziąć!",
     "Słyszę, że szukasz guza człowieku. Zrób jeszcze jeden krok, a sam zaczniesz warczeć!",
@@ -52,19 +49,38 @@ TEKSTY_WYSOKIE_JAMNIK = [
 
 TEKSTY_PORANNE = [
     "Pospiesz się, bo się posikam!",
-    "Szybko, bo za chwilę będzie śmierdząca niespodzianka na dywanie!",
-    "Sikać mi się chce, no ile można leżeć!"
+    "Szybko, bo za chwilę będzie śmierdząca niespodzianka!",
+    "Pospiesz się, bo narobię ci na ten nowy dywanik!",
+    "Sikać mi się chce, szybko!"
 ]
 
 TEKSTY_WIECZORNE = [
-    "Ludzie, jestem sam! Niech ktoś pomoże!",
-    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz i nie przyjdziesz przytulić."
+    "Ludzie, jestem sam!",
+    "Niech ktoś pomoże!",
+    "Jest tam kto?",
+    "Pomocy tutaj nawaliłem i strasznie śmierdzi!",
+    "W co ja się wpakowałem...",
+    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz."
+]
+
+TEKSTY_DZIENNE = [
+    "Teraz czas na parówkę! No dajesz!",
+    "Rzuć piłkę! No rzuć!",
+    "Może znów spotkamy tę rudą? Niezła foczka!",
+    "Już nie mogę się doczekać, jak wykopię dołek!",
+    "Właśnie się dowiedziałem, że nasz sąsiad chodzi na lewiznę!",
+    "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
+    "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
+    "To mój teren! Zostaw mnie w spokoju!",
+    "Zrobisz jeszcze jeden krok, a sam zaczniesz warczeć!"
 ]
 
 DODATKOWE_ZDANIA = [
     "No i co ty na to człowiek? Przemyśl to sobie.",
     "A teraz masuj mnie za uchem, bo się obrażę.",
-    "Zrozumiano, czy mam szczeknąć to jeszcze raz?"
+    "Zrozumiano, czy mam szczeknąć to jeszcze raz?",
+    "I nie patrz tak na mnie, tylko wyciągaj smaczki!",
+    "Dobra, koniec gadania, bierzmy się za konkrety."
 ]
 
 # --- STYLE CSS DLA ZIELONEGO INTERFEJSU ---
@@ -78,7 +94,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- WYŚWIETLANIE LOGO (Zmień link na bezpośredni do pliku graficznego!) ---
+# --- WYŚWIETLANIE LOGO (Zmień link na bezpośredni do pliku .png/.jpg) ---
 LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
 
 st.markdown(f"""
@@ -87,53 +103,44 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz PRO v9.0")
+st.title("🐕 HauTłumacz PRO v9.2")
 st.write("---")
 
 # ==================== SEKCJA NAGRYWANIA ====================
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Prawdziwa analiza częstotliwości audio (FFT).")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Inteligentny algorytm automatycznie dopasuje kontekst.")
 
-audio_nagrane = st.audio_input("Nagraj psa")
+audio_nagrane = st.audio_input("Nagraj")
 
 if audio_nagrane is not None:
-    # Pobieramy bajty z nagrania
     audio_bytes = audio_nagrane.read()
-    
-    # Mierzymy herce (Hz) przy użyciu transformaty Fouriera
     wykryte_hz = analizuj_czestotliwosc(audio_bytes)
     
     teraz = datetime.now()
     godzina_teraz = teraz.hour
     pelny_tekst = ""
     
-    st.sidebar.metric(label="Wykryta częstotliwość dominująca", value=f"{int(wykryte_hz)} Hz")
+    if TRYB_ANALIZY:
+        st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    # --- LOGIKA DECYZYJNA NA BAZIE CZĘSTOTLIWOŚCI (FIZYKA) ---
-    
-    # 1. WYKRYTO BARDZO NISKI TON (Poniżej 300 Hz) -> Owczarek / Duży pies warczy
-    if wykryte_hz < 300:
-        st.sidebar.success("🎯 Klasyfikacja: Niski ton (Duży pies / Warczenie)")
+    # --- LOGIKA DECYZYJNA NA BAZIE CZĘSTOTLIWOŚCI LUB ZEGARKA ---
+    if TRYB_ANALIZY and wykryte_hz < 300:
         wylosowany = random.choice(TEKSTY_NISKIE_OWCZAREK)
         pelny_tekst = f"[{int(wykryte_hz)} Hz - Owczarkowy bas]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
-        
-    # 2. WYKRYTO BARDZO WYSOKI TON (Powyżej 1200 Hz) -> Jamnik / Pisk / Skomlenie
-    elif wykryte_hz > 1200:
-        st.sidebar.warning("🎯 Klasyfikacja: Wysoki ton (Mały pies / Pisk)")
+    elif TRYB_ANALIZY and wykryte_hz > 1200:
         wylosowany = random.choice(TEKSTY_WYSOKIE_JAMNIK)
         pelny_tekst = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
-        
-    # 3. TON ŚREDNI -> Sprawdzamy czas systemowy (Tradycyjne tłumaczenie godzinowe)
     else:
-        st.sidebar.info("🎯 Klasyfikacja: Ton średni (Klasyczny szczek)")
+        # Losowanie godzinowe (tak jak w oryginalnym kodzie)
         if 5 <= godzina_teraz < 12:
             wylosowany = random.choice(TEKSTY_PORANNE)
         elif 20 <= godzina_teraz or godzina_teraz < 5:
             wylosowany = random.choice(TEKSTY_WIECZORNE)
         else:
-            wylosowany = "Rzuć piłkę! No dajesz! Albo chociaż daj parówkę!"
+            wylosowany = random.choice(TEKSTY_DZIENNE)
             
-        pelny_tekst = f"[Szczek średni]: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
+        prefiks = f"[{int(wykryte_hz)} Hz - Szczek]" if TRYB_ANALIZY else "[Szczek]"
+        pelny_tekst = f"{prefiks}: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
 
     # --- GENEROWANIE AUDIO PRZEZ LEKTORA ---
     tts = gTTS(text=pelny_tekst, lang='pl')
@@ -141,9 +148,9 @@ if audio_nagrane is not None:
     tts.write_to_fp(fp)
     fp.seek(0)
     
-    # ==================== WYNIK DETEKCJI ====================
+    # ==================== SEKCJA WYNIKU ====================
     st.write("---")
-    st.markdown("### 📊 Wynik analizy akustyczno-humorystycznej")
+    st.markdown("### 📊 Wynik analizy")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -157,7 +164,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz PRO v9.0 - Stabilna wersja chmurowa z FFT.")
+    st.caption("HauTłumacz PRO v9.2 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
