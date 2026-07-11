@@ -15,7 +15,7 @@ except ImportError:
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
 st.set_page_config(page_title="HauTłumacz PRO v10.0", page_icon="🐕", layout="centered")
 
-# --- INICJALIZACJA PAMIĘCI ANTY-POWTÓRZENIOWEJ I LICZNIKA LUDZKIEGO ---
+# --- INICJALIZACJA PAMIĘCI ANTY-POWTÓRZENIOWEJ ---
 if "ostatni_tekst" not in st.session_state:
     st.session_state.ostatni_tekst = ""
 if "licznik_ludzki" not in st.session_state:
@@ -38,7 +38,7 @@ def analizuj_czestotliwosc(audio_bytes):
     except:
         return 600.0
 
-# ==================== BAZY TEKSTÓW (KOMPLETNE I POPRAWIONE) ====================
+# ==================== TWOJE NOWE BAZY TEKSTÓW ====================
 
 GRUPA_TEKSTY_PORANNE = [
     "Bieguniem, bieguniem, bo się posikam!", 
@@ -62,7 +62,7 @@ GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = [
     "Zatrudnij mnie to będę pilnować pieniędzy."
 ]
 
-TEKSTY_DZIENNE_ZABABA = [
+TEKSTY_DZIENNE_ZABAWA = [
     "Interesują mnie tylko konkrety - gdzie są parówki?!",
     "Jaki patyk? Rzuć parówkę!",
     "Pobiegamy razem?",
@@ -122,7 +122,6 @@ DODATKOWE_ZDANIA = [
     "Dobra, koniec gadania, bierzmy się za konkrety. Dlaczego miska jest pusta?",
     "Znów miska jest pusta!"
 ]
-
 GRUPA_TEKSTOW_NEUTRALNYCH = [
     "Co mam powtórzyć?",
     "Już prościej tego nie można wyrazić.",
@@ -200,13 +199,25 @@ def losuj_bez_powtórzen(baza):
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
-    h1 { color: #1e4620 !important; text-align: center; }
-    .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; background-color: #e8f5e9; }
+    h1 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
+    .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #e8f5e9; }
+    .logo-container { display: flex; justify-content: center; margin-bottom: 10px; }
+    .logo-img { border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     </style>
+""", unsafe_allow_html=True)
+LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
+
+st.markdown(f"""
+    <div class="logo-container">
+        <img src="{LINK_DO_TWOJEGO_ZDJECIA}" width="180" class="logo-img">
+    </div>
 """, unsafe_allow_html=True)
 
 st.title("🐕 HauTłumacz ULTRA v10.0")
 st.write("---")
+
+st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Algorytm automatycznie dobierze idealny kontekst.")
 
 audio_nagrane = st.audio_input("Nagraj")
 
@@ -220,7 +231,7 @@ if audio_nagrane is not None:
     uzyj_dodatkowego = True
     uzyj_neutralnego = False
     
-    # Check current time against groups
+    # Precyzyjne strefy czasowe doby
     is_morning = time(4, 30) <= teraz < time(7, 0)
     is_pre_noon = time(7, 0) <= teraz < time(11, 0)
     is_noon = time(11, 0) <= teraz < time(14, 0)
@@ -231,9 +242,9 @@ if audio_nagrane is not None:
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    # ==================== LOGIKA DETEKCJI RESTRYKCJI I GABARYTÓW ====================
+    # ==================== LOGIKA DETEKCJI I RESTRYKCJI ====================
     
-    # 🚨 SPECJALNA WARSTWA: WYKRYWANIE GŁOSU CZŁOWIEKA (Pasma mowy ludzkiej / Tryb Rozkazujący)
+    # 🚨 SYSTEM UPMINANIA CZŁOWIEKA (Wykrywanie pasma mowy ludzkiej)
     if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
         st.session_state.licznik_ludzki += 1
         uzyj_dodatkowego = False
@@ -245,13 +256,13 @@ if audio_nagrane is not None:
             wylosowany = "Nie mogę przetłumaczyć - Mów wolno i wyraźnie."
         else:
             wylosowany = "A teraz powiedz to drukowanymi, patrząc w lustro. Aplikacja jest do tłumaczenia dźwięków wydawanych przez zwierzaki, więc nie nagrywaj siebie, tylko pieska!"
-            st.session_state.licznik_ludzki = 0 # reset
+            st.session_state.licznik_ludzki = 0
             
-    # 🎯 STANDARDOWA LOGIKA DETEKCJI PSA
+    # 🎯 STANDARDOWA LOGIKA DETEKCJI EMOCJI I GABARYTÓW PSA
     else:
-        st.session_state.licznik_ludzki = 0 # Reset jeśli pies szczeknął
+        st.session_state.licznik_ludzki = 0
         
-        # 1. RASY GIGANTYCZNE (Zdenerwowanie / Stres -> Poniżej 200 Hz)
+        # 1. RASY GIGANTYCZNE (Zdenerwowanie -> Poniżej 200 Hz)
         if TRYB_ANALIZY and wykryte_hz < 200:
             st.sidebar.success("🎯 Klasyfikacja: Gigant (Zdenerwowany)")
             wylosowany = losuj_bez_powtórzen(TEKSTY_GIGANT_STRES)
@@ -259,23 +270,23 @@ if audio_nagrane is not None:
             uzyj_neutralnego = True
             
         # 2. RASY DUŻE (Chce się bawić -> 200 Hz - 450 Hz)
-        elif 200 <= wykryte_hz < 450:
+        elif TRYB_ANALIZY and 200 <= wykryte_hz < 450:
             st.sidebar.success("🎯 Klasyfikacja: Duży pies (Zabawa)")
             wylosowany = losuj_bez_powtórzen(TEKSTY_DUZY_OWCZAREK_ZABAWA)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
             
         # 3. MINIATURA JAMNIK (Powyżej 1200 Hz)
-        elif wykryte_hz > 1200:
+        elif TRYB_ANALIZY and wykryte_hz > 1200:
             st.sidebar.warning("🎯 Klasyfikacja: Miniatura (Jamnik/York)")
             wylosowany = losuj_bez_powtórzen(TEKSTY_MINIATURA_JAMNIK)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
             
-        # 4. PASMO ŚREDNIE LUB BRAK DOPASOWANIA -> SPRAWDZAMY PRECYZYJNIE CZAS DOOKOŁA DOBY
+        # 4. PASMO ŚREDNIE -> ROZBICIE NA TWOJE 6 STREF CZASOWYCH
         else:
             if is_morning:
                 wylosowany = losuj_bez_powtórzen(GRUPA_TEKSTY_PORANNE)
                 naglowek_ekranu = "[Poranny Bieguniem]"
-                uzyj_dodatkowego = False # brak dodatków rano
+                uzyj_dodatkowego = False
             elif is_pre_noon:
                 wylosowany = losuj_bez_powtórzen(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
                 naglowek_ekranu = "[Przedpołudniowy Samotnik]"
@@ -295,13 +306,13 @@ if audio_nagrane is not None:
             elif is_night:
                 wylosowany = losuj_bez_powtórzen(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Nocny Alarm]"
-                uzyj_dodatkowego = False # brak dodatków w nocy
+                uzyj_dodatkowego = False
                 
-            # Jeśli ktoś mówi do psa rozkazująco w dzień, dodajemy losowy prztyczek
-            if (is_pre_noon or is_noon or is_afternoon) and random.random() < 0.4:
+            # Czasem rzucamy prztyczkiem w nos, jeśli człowiek wydaje komendy
+            if (is_pre_noon or is_noon or is_afternoon) and random.random() < 0.3:
                 wylosowany = losuj_bez_powtórzen(ZDANIA_ROZKAZUJACE)
 
-    # Zapamiętujemy obecne zdanie do efektów warunkowych X
+    # Zapamiętujemy stan do sparowanych komunikatów
     st.session_state.ostatnie_pokazywane_zdanie = wylosowany
 
     # --- BUDOWANIE STRUKTURY MIXU ZDAŃ ---
@@ -311,16 +322,16 @@ if audio_nagrane is not None:
     if uzyj_neutralnego:
         final_tekst += f" {random.choice(GRUPA_TEKSTOW_NEUTRALNYCH)}"
 
-    # Czysty tekst dla lektora bez nagłówków i zoptymalizowany pod turbo tempo (+15%)
+    # Przygotowanie tekstu pod dynamiczne turbo tempo (+15%)
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
 
-    # --- GENEROWANIE AUDIO TURBO ---
+    # --- GENEROWANIE AUDIO ---
     tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp = io.BytesIO()
     tts.write_to_fp(fp)
     fp.seek(0)
     
-    # ==================== WYNIK ====================
+    # ==================== SEKCJA WYNIKU ====================
     st.write("---")
     st.markdown("### 📊 Wynik analizy")
     col1, col2 = st.columns(2)
@@ -332,11 +343,11 @@ if audio_nagrane is not None:
         st.write("💬 **Tłumaczenie tekstowe:**")
         st.success(f"{naglowek_ekranu}: {final_tekst}")
 
-# ==================== STOPKA Z REGULAMINEM ====================
+# ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz v10.0 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz ULTRA v10.0 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
