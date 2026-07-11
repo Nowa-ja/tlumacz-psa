@@ -1,7 +1,7 @@
 import streamlit as st
 import io
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, time
 from gtts import gTTS
 
 # --- BEZPIECZNE IMPORTOWANIE BIBLIOTEK AKUSTYCZNYCH ---
@@ -13,12 +13,17 @@ except ImportError:
     TRYB_ANALIZY = False
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v9.6", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v10.0", page_icon="🐕", layout="centered")
 
-if "ostatnie_uzycie" not in st.session_state:
-    st.session_state.ostatnie_uzycie = datetime.now()
+# --- INICJALIZACJA PAMIĘCI ANTY-POWTÓRZENIOWEJ I LICZNIKA LUDZKIEGO ---
+if "ostatni_tekst" not in st.session_state:
+    st.session_state.ostatni_tekst = ""
+if "licznik_ludzki" not in st.session_state:
+    st.session_state.licznik_ludzki = 0
+if "ostatnie_pokazywane_zdanie" not in st.session_state:
+    st.session_state.ostatnie_pokazywane_zdanie = ""
 
-# --- ANALIZATOR AUDIO ---
+# --- ANALIZATOR AUDIO (FFT) ---
 def analizuj_czestotliwosc(audio_bytes):
     if not TRYB_ANALIZY:
         return 600.0
@@ -33,17 +38,128 @@ def analizuj_czestotliwosc(audio_bytes):
     except:
         return 600.0
 
-# ==================== BAZY TEKSTÓW ====================
-TEKSTY_GIGANT = [
-    "Słyszę potężny bas! Mówi do ciebie rasa olbrzymia (Mastif/Dog). Ziemia drży, a ty nadal nie wyciągasz smaczków?",
-    "Z moją masą nie ma żartów człowieku. Jeden mój krok to trzęsienie ziemi, więc ruszaj się szybciej z tą miską!",
-    "Uwaga, nadchodzi król kanapy! Ustąp miejsca gabarytom, bo zaraz się na tobie położę."
+# ==================== BAZY TEKSTÓW (KOMPLETNE I POPRAWIONE) ====================
+
+GRUPA_TEKSTY_PORANNE = [
+    "Bieguniem, bieguniem, bo się posikam!", 
+    "Nie musimy wychodzić, ale zastanów się, czy to się spierze.",
+    "Chodź szybko to zobaczysz sąsiadkę bez makijażu!!!",
+    "Szybko, bo za chwilę mi tyłek rozerwie!",
+    "Pospiesz się, bo narobię ci na środek pokoju!",
+    "Sikać mi się chce, szybko!",
+    "Nie musisz wstawać, znalazłem przed drzwiami miejsce, gdzie mogę zrąbać.",
+    "No wstawaj, obiecałem, że wyprowadzę cię na spacer.",
+    "Ktoś mądry powiedział - w zdrowym ciele zdrowy duch i ja to popieram.",
+    "Carpe diem - chwytaj smycz!"
 ]
 
-TEKSTY_DUZY_OWCZAREK = [
-    "Uwaga, mówi potężny Owczarek/Labrador! Szacunek musi być. Dawaj parówkę albo sam ją sobie wezmę!",
-    "Słyszę, że szukasz guza człowieku. Zrób jeszcze jeden krok, a sam zaczniesz warczeć!",
-    "To mój teren! Weź ty się ogarnij i nie podchodź bez pozwolenia, dopóki nie masz meldunku."
+GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = [
+    "No i co ja tak w samotności mam być?",
+    "O której mogę się ciebie spodziewać?",
+    "Nie wpadniesz na przerwę?",
+    "Oj wpadnij choć na chwilę to dam ci kość!!!",
+    "Poszukaj sobie fajnego zajęcia.",
+    "Zatrudnij mnie to będę pilnować pieniędzy."
+]
+
+TEKSTY_DZIENNE_ZABABA = [
+    "Interesują mnie tylko konkrety - gdzie są parówki?!",
+    "Jaki patyk? Rzuć parówkę!",
+    "Pobiegamy razem?",
+    "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!",
+    "Może znów spotkamy tę rudą, jest niezła?!",
+    "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!",
+    "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."
+]
+
+GRUPA_TEKSTOW_POLUDNIOWYCH = [
+    "Fajnie, że jesteś w domu, razem coś wymyślimy.",
+    "Ty mi rzucaj, a ja będę łapać.",
+    "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.",
+    "Rzucaj mi kość, tylko tym razem dobrze!",
+    "Pobiegamy razem?"
+]
+
+GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
+    "Tak jak się umawialiśmy - jestem tutaj.",
+    "O której to wracasz?",
+    "Fajnie, że jesteś, ale teraz szybko chodźmy.",
+    "Jeszcze chwila a się sfajdam!",
+    "Chodź szybko to zobaczysz coś ciekawego.",
+    "Już miałem gryźć meble, by nie wyjść z wprawy."
+]
+
+TEKSTY_WIECZORNE = [
+    "Jeszcze tylko kupkę, siku i można w kimono!", 
+    "Zaraz mi pęcherz rozerwie.",
+    "Mogę zesrać się tutaj - nie musimy wychodzić!",
+    "Fundamentalne pytanie brzmi - srać czy srać?",
+    "Wyczułem fajny towar w okolicy - może jest singlem?",
+    "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.",
+    "Chodź zobaczysz straszną babę.",
+    "Cisza nocna jest od dwudziestej czwartej?"
+]
+
+TEKSTY_NOCNE = [
+    "Ludzie! Ludzie! Ludziska!!!", 
+    "Ja tutaj strasznie cierpię.",
+    "Ludzie, ja tutaj jestem sam!",
+    "Ludzie, oni mnie straszyli, że będą gwałcić!",
+    "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!",
+    "Niech ktoś zadzwoni do opieki nad zwierzętami!",
+    "Ludzie, dajcie mi tutaj kogoś do zabawy.",
+    "Niech mi ktoś pomoże!!!",
+    "Jest tam kto?",
+    "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!",
+    "W co ja się wpakowałem...!!!"
+]
+
+DODATKOWE_ZDANIA = [
+    "No i co ty na to człowiek? Przemyśl to sobie.",
+    "Możesz mnie pogłaskać, ale nie ma nic za darmo.",
+    "Zrozumiano, czy mam szczeknąć to jeszcze raz?",
+    "I nie patrz tak na mnie, tylko wyciągaj smaczki!",
+    "Dobra, koniec gadania, bierzmy się za konkrety. Dlaczego miska jest pusta?",
+    "Znów miska jest pusta!"
+]
+
+GRUPA_TEKSTOW_NEUTRALNYCH = [
+    "Co mam powtórzyć?",
+    "Już prościej tego nie można wyrazić.",
+    "Następnym razem zapisz sobie tę sentencję.",
+    "Patrz mi na usta i czytaj z ruchu warg.",
+    "Jesteś bardziej inteligentny, gdy milczysz.",
+    "Ja drugi raz nie będę powtarzać.",
+    "A mówią, że skończyłeś kilka klas.",
+    "Jesteś bystrym człowiekiem."
+]
+
+TEKSTY_GIGANT_STRES = [
+    "Kroczysz po bardzo cienkim lodzie, zatrzymaj się.", 
+    "Czy naprawdę chce ci się uciekać?",
+    "Odejdź stąd.",
+    "Zbłądziłeś?",
+    "Tutaj nie znajdziesz pustego nakrycia dla wędrowca.",
+    "Pomyliłeś chyba adres?",
+    "Agnieszka już tutaj nie mieszka.",
+    "Artykuł dwudziesty piąty Kodeksu Karnego jest po mojej stronie.",
+    "Ja już jadłem kolację, ale możesz wystawić palca.",
+    "Ostrzegam, nie podchodź!",
+    "To nie jest dobry pomysł!",
+    "Ja sobie twój zapach zapamiętam.",
+    "Człowieku, cofnij się.",
+    "Nie chcę ciebie tutaj.",
+    "Nie znajdziesz tutaj kolegów.",
+    "Moje ego nie lubi sprzeciwu, więc przemyśl, czy warto się zbliżać.",
+    "Pojawiłem się tutaj znikąd, a ty nadal nie wyciągasz wniosków?",
+    "Posłuchaj, białasie, mnie nie obchodzi, kogo tam znasz - rób nawrotkę!"
+]
+
+TEKSTY_DUZY_OWCZAREK_ZABAWA = [
+    "Dawaj parówkę albo sam sobie wezmę kawał mięcha!",
+    "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?",
+    "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
+    "A teraz rzuć swojską!"
 ]
 
 TEKSTY_SREDNI_BEAGLE = [
@@ -59,69 +175,38 @@ TEKSTY_MALUCH = [
 ]
 
 TEKSTY_MINIATURA_JAMNIK = [
-    "Może i jestem mały jak parówka, ale gniew mam wielki! Cofnij się!",
-    "Jestem małym, wściekłym demonem! Nie ignoruj mojego piskliwego majestatu, bo ugryzę w kostkę!",
-    "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę, a ty mnie tu denerwujesz!"
+    "Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!",
+    "Jestem małym, wściekłym demonem! Ale potrafię zajść ci za skórę!",
+    "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę i nie wiem, jak to wykorzystać - moja miska jest pusta!"
 ]
 
-TEKSTY_PORANNE = [
-    "Pospiesz się, bo się posikam!",
-    "Szybko, bo za chwilę będzie śmierdząca niespodzianka!",
-    "Pospiesz się, bo narobię ci na ten nowy dywanik!",
-    "Sikać mi się chce, szybko!"
-]
-
-TEKSTY_WIECZORNE = [
-    "Ludzie, jestem sam!",
-    "Niech ktoś pomoże!",
-    "Jest tam kto?",
-    "Pomocy tutaj nawaliłem i strasznie śmierdzi!",
-    "W co ja się wpakowałem...",
-    "Zaraz narobię ci na twój ładny dywanik, jak się nie pospieszysz."
-]
-
-TEKSTY_DZIENNE = [
-    "Teraz czas na parówkę! No dajesz!",
-    "Rzuć piłkę! No rzuć!",
-    "Może znów spotkamy tę rudą? Niezła foczka!",
-    "Już nie mogę się doczekać, jak wykopię dołek!",
+ZDANIA_ROZKAZUJACE = [
     "I co jeszcze? Może piesek ma ugotować i pozmywać po tobie? To nie ten etap!!!",
-    "A gdzie to się bywało? Wyczuwam tutaj jakąś zdzirę i mam nadzieję, że się wytłumaczysz?!",
-    "To mój teren! Zostaw mnie w spokoju!"
+    "Ty się z głupim na rozumy pomieniałeś?",
+    "Chyba za długo siedziałeś przed telewizorem.",
+    "Czy ty już się zaszczepiłeś na głupotę?"
 ]
 
-DODATKOWE_ZDANIA = [
-    "No i co ty na to człowiek? Przemyśl to sobie.",
-    "A teraz masuj mnie za uchem, bo się obrażę.",
-    "Zrozumiano, czy mam szczeknąć to jeszcze raz?",
-    "I nie patrz tak na mnie, tylko wyciągaj smaczki!",
-    "Dobra, koniec gadania, bierzmy się za konkrety."
-]
+# --- POMOCNICZA FUNKCJA DO LOSOWANIA BEZ POWTÓRZEŃ ---
+def losuj_bez_powtórzen(baza):
+    bezpieczna_baza = [t for t in baza if t != st.session_state.ostatni_tekst]
+    if not bezpieczna_baza:
+        bezpieczna_baza = baza
+    wybrany = random.choice(bezpieczna_baza)
+    st.session_state.ostatni_tekst = wybrany
+    return wybrany
 
 # --- STYLE CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
-    h1 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
-    .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #e8f5e9; }
-    .logo-container { display: flex; justify-content: center; margin-bottom: 10px; }
-    .logo-img { border-radius: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h1 { color: #1e4620 !important; text-align: center; }
+    .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; background-color: #e8f5e9; }
     </style>
 """, unsafe_allow_html=True)
 
-LINK_DO_TWOJEGO_ZDJECIA = "https://ibb.co" 
-
-st.markdown(f"""
-    <div class="logo-container">
-        <img src="{LINK_DO_TWOJEGO_ZDJECIA}" width="180" class="logo-img">
-    </div>
-""", unsafe_allow_html=True)
-
-st.title("🐕 HauTłumacz SPÓJNY v9.6")
+st.title("🐕 HauTłumacz ULTRA v10.0")
 st.write("---")
-
-st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Przyspieszony lektor automatycznie odtworzy czyste i spójne tłumaczenie.")
 
 audio_nagrane = st.audio_input("Nagraj")
 
@@ -129,70 +214,113 @@ if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
     wykryte_hz = analizuj_czestotliwosc(audio_bytes)
     
-    teraz = datetime.now()
-    godzina_teraz = teraz.hour
-    
+    teraz = datetime.now().time()
     wylosowany = ""
     naglowek_ekranu = ""
-    uzyj_dodatkowego = True # Flaga decydująca czy doklejać zdanie poboczne
+    uzyj_dodatkowego = True
+    uzyj_neutralnego = False
     
-    # --- POPRAWIONA SELEKCJA TEKSTU I KONTROLA KONTEKSTU ---
+    # Check current time against groups
+    is_morning = time(4, 30) <= teraz < time(7, 0)
+    is_pre_noon = time(7, 0) <= teraz < time(11, 0)
+    is_noon = time(11, 0) <= teraz < time(14, 0)
+    is_afternoon = time(14, 0) <= teraz < time(19, 0)
+    is_evening = time(19, 0) <= teraz < time(23, 0)
+    is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+
+    # ==================== LOGIKA DETEKCJI RESTRYKCJI I GABARYTÓW ====================
+    
+    # 🚨 SPECJALNA WARSTWA: WYKRYWANIE GŁOSU CZŁOWIEKA (Pasma mowy ludzkiej / Tryb Rozkazujący)
+    if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
+        st.session_state.licznik_ludzki += 1
+        uzyj_dodatkowego = False
+        naglowek_ekranu = "[Wykryto mowę człowieka]"
         
-        if wykryte_hz < 200:
-            st.sidebar.success("🎯 Klasyfikacja: Rasa Olbrzymia (Bas)")
-            wylosowany = random.choice(TEKSTY_GIGANT)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Bas Giganta]"
-        elif 200 <= wykryte_hz < 450:
-            st.sidebar.success("🎯 Klasyfikacja: Rasa Duża (Owczarek/Labrador)")
-            wylosowany = random.choice(TEKSTY_DUZY_OWCZAREK)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarkowy ton]"
-        elif 450 <= wykryte_hz < 800:
-            st.sidebar.info("🎯 Klasyfikacja: Rasa Średnia (Beagle/Border)")
-            wylosowany = random.choice(TEKSTY_SREDNI_BEAGLE)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni szczek]"
-        elif 800 <= wykryte_hz < 1200:
-            st.sidebar.warning("🎯 Klasyfikacja: Rasa Mała (Mops/Jack Russell)")
-            wylosowany = random.choice(TEKSTY_MALUCH)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Żwawy szczek]"
+        if st.session_state.licznik_ludzki == 1:
+            wylosowany = "Nie mogę przetłumaczyć tego, bo za szybko mówisz."
+        elif st.session_state.licznik_ludzki == 2:
+            wylosowany = "Nie mogę przetłumaczyć - Mów wolno i wyraźnie."
         else:
-            st.sidebar.warning("🎯 Klasyfikacja: Rasa Miniaturowa (Jamnik/York)")
-            wylosowany = random.choice(TEKSTY_MINIATURA_JAMNIK)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]"
-    else:
-        # Tryb zapasowy (Godzinowy) - tutaj blokujemy losowe dodatki, bo pies ma konkretną potrzebę
-        if 5 <= godzina_teraz < 12:
-            wylosowany = random.choice(TEKSTY_PORANNE)
-            uzyj_dodatkowego = False # WYŁĄCZONE DLA SIKU
-        elif 20 <= godzina_teraz or godzina_teraz < 5:
-            wylosowany = random.choice(TEKSTY_WIECZORNE)
-            uzyj_dodatkowego = False # WYŁĄCZONE DLA WYCIA/STRASZNEGO SMRODU
-        else:
-            wylosowany = random.choice(TEKSTY_DZIENNE)
-            uzyj_dodatkowego = True # W ciągu dnia pies może chcieć masażu
+            wylosowany = "A teraz powiedz to drukowanymi, patrząc w lustro. Aplikacja jest do tłumaczenia dźwięków wydawanych przez zwierzaki, więc nie nagrywaj siebie, tylko pieska!"
+            st.session_state.licznik_ludzki = 0 # reset
             
-        naglowek_ekranu = "[Tłumaczenie]"
-
-    # Budujemy finalne wypowiedzi w zależności od flagi spójności kontekstu
-    if uzyj_dodatkowego:
-        dodatek = random.choice(DODATKOWE_ZDANIA)
-        tekst_do_wyswietlenia = f"{naglowek_ekranu}: {wylosowany} {dodatek}"
-        tekst_do_czytania = f"{wylosowany} {dodatek}"
+    # 🎯 STANDARDOWA LOGIKA DETEKCJI PSA
     else:
-        tekst_do_wyswietlenia = f"{naglowek_ekranu}: {wylosowany}"
-        tekst_do_czytania = f"{wylosowany}"
+        st.session_state.licznik_ludzki = 0 # Reset jeśli pies szczeknął
+        
+        # 1. RASY GIGANTYCZNE (Zdenerwowanie / Stres -> Poniżej 200 Hz)
+        if TRYB_ANALIZY and wykryte_hz < 200:
+            st.sidebar.success("🎯 Klasyfikacja: Gigant (Zdenerwowany)")
+            wylosowany = losuj_bez_powtórzen(TEKSTY_GIGANT_STRES)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Gigant]"
+            uzyj_neutralnego = True
+            
+        # 2. RASY DUŻE (Chce się bawić -> 200 Hz - 450 Hz)
+        elif 200 <= wykryte_hz < 450:
+            st.sidebar.success("🎯 Klasyfikacja: Duży pies (Zabawa)")
+            wylosowany = losuj_bez_powtórzen(TEKSTY_DUZY_OWCZAREK_ZABAWA)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
+            
+        # 3. MINIATURA JAMNIK (Powyżej 1200 Hz)
+        elif wykryte_hz > 1200:
+            st.sidebar.warning("🎯 Klasyfikacja: Miniatura (Jamnik/York)")
+            wylosowany = losuj_bez_powtórzen(TEKSTY_MINIATURA_JAMNIK)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+            
+        # 4. PASMO ŚREDNIE LUB BRAK DOPASOWANIA -> SPRAWDZAMY PRECYZYJNIE CZAS DOOKOŁA DOBY
+        else:
+            if is_morning:
+                wylosowany = losuj_bez_powtórzen(GRUPA_TEKSTY_PORANNE)
+                naglowek_ekranu = "[Poranny Bieguniem]"
+                uzyj_dodatkowego = False # brak dodatków rano
+            elif is_pre_noon:
+                wylosowany = losuj_bez_powtórzen(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
+                naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+            elif is_noon:
+                # EFEKT X: Obsługa sparowanych zdań
+                if st.session_state.ostatnie_pokazywane_zdanie == "Ty mi rzucaj, a ja będę łapać.":
+                    wylosowany = "Chyba, że wolisz żebym ciebie podgryzał."
+                else:
+                    wylosowany = losuj_bez_powtórzen(GRUPA_TEKSTOW_POLUDNIOWYCH)
+                naglowek_ekranu = "[Południowa Rozgrywka]"
+            elif is_afternoon:
+                wylosowany = losuj_bez_powtórzen(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+                naglowek_ekranu = "[Popołudniowa Radość]"
+            elif is_evening:
+                wylosowany = losuj_bez_powtórzen(TEKSTY_WIECZORNE)
+                naglowek_ekranu = "[Wieczorny Relaks]"
+            elif is_night:
+                wylosowany = losuj_bez_powtórzen(TEKSTY_NOCNE)
+                naglowek_ekranu = "[Nocny Alarm]"
+                uzyj_dodatkowego = False # brak dodatków w nocy
+                
+            # Jeśli ktoś mówi do psa rozkazująco w dzień, dodajemy losowy prztyczek
+            if (is_pre_noon or is_noon or is_afternoon) and random.random() < 0.4:
+                wylosowany = losuj_bez_powtórzen(ZDANIA_ROZKAZUJACE)
 
-    # Czyszczenie znaków interpunkcyjnych pod kątem płynności i tempa 15%
-    tekst_do_czytania = tekst_do_czytania.replace(".", ",").replace("!", ",")
+    # Zapamiętujemy obecne zdanie do efektów warunkowych X
+    st.session_state.ostatnie_pokazywane_zdanie = wylosowany
 
-    # --- GENEROWANIE AUDIO ---
+    # --- BUDOWANIE STRUKTURY MIXU ZDAŃ ---
+    final_tekst = wylosowany
+    if uzyj_dodatkowego and not (TRYB_ANALIZY and 85 <= wykryte_hz <= 255):
+        final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
+    if uzyj_neutralnego:
+        final_tekst += f" {random.choice(GRUPA_TEKSTOW_NEUTRALNYCH)}"
+
+    # Czysty tekst dla lektora bez nagłówków i zoptymalizowany pod turbo tempo (+15%)
+    tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
+
+    # --- GENEROWANIE AUDIO TURBO ---
     tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp = io.BytesIO()
     tts.write_to_fp(fp)
     fp.seek(0)
     
-    # ==================== SEKCJA WYNIKU ====================
+    # ==================== WYNIK ====================
     st.write("---")
     st.markdown("### 📊 Wynik analizy")
     col1, col2 = st.columns(2)
@@ -202,13 +330,13 @@ if audio_nagrane is not None:
         st.audio(fp, format="audio/mp3", autoplay=True)
     with col2:
         st.write("💬 **Tłumaczenie tekstowe:**")
-        st.success(tekst_do_wyswietlenia)
+        st.success(f"{naglowek_ekranu}: {final_tekst}")
 
-# ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
+# ==================== STOPKA Z REGULAMINEM ====================
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz SPÓJNY v9.6 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz v10.0 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
@@ -217,7 +345,7 @@ with col_foot2:
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz in celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
@@ -226,4 +354,3 @@ with col_foot2:
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
-
