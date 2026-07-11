@@ -13,7 +13,7 @@ except ImportError:
     TRYB_ANALIZY = False
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v9.5", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v9.6", page_icon="🐕", layout="centered")
 
 if "ostatnie_uzycie" not in st.session_state:
     st.session_state.ostatnie_uzycie = datetime.now()
@@ -117,11 +117,11 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz TURBO v9.5")
+st.title("🐕 HauTłumacz SPÓJNY v9.6")
 st.write("---")
 
 st.markdown("### 🎙️ Sekcja nagrywania i przetwarzania")
-st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Przyspieszony lektor automatycznie odtworzy czyste tłumaczenie.")
+st.caption("Uruchom nagrywanie, gdy pies wydaje dźwięki. Przyspieszony lektor automatycznie odtworzy czyste i spójne tłumaczenie.")
 
 audio_nagrane = st.audio_input("Nagraj")
 
@@ -134,8 +134,9 @@ if audio_nagrane is not None:
     
     wylosowany = ""
     naglowek_ekranu = ""
+    uzyj_dodatkowego = True # Flaga decydująca czy doklejać zdanie poboczne
     
-    # --- NOWA LOGIKA SELEKCJI TEKSTU DO CZYTANIA (BEZ SŁOWA SZCZEK) ---
+    # --- POPRAWIONA SELEKCJA TEKSTU I KONTROLA KONTEKSTU ---
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
         
@@ -160,21 +161,32 @@ if audio_nagrane is not None:
             wylosowany = random.choice(TEKSTY_MINIATURA_JAMNIK)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Jamnikowy pisk]"
     else:
+        # Tryb zapasowy (Godzinowy) - tutaj blokujemy losowe dodatki, bo pies ma konkretną potrzebę
         if 5 <= godzina_teraz < 12:
             wylosowany = random.choice(TEKSTY_PORANNE)
+            uzyj_dodatkowego = False # WYŁĄCZONE DLA SIKU
         elif 20 <= godzina_teraz or godzina_teraz < 5:
             wylosowany = random.choice(TEKSTY_WIECZORNE)
+            uzyj_dodatkowego = False # WYŁĄCZONE DLA WYCIA/STRASZNEGO SMRODU
         else:
             wylosowany = random.choice(TEKSTY_DZIENNE)
+            uzyj_dodatkowego = True # W ciągu dnia pies może chcieć masażu
+            
         naglowek_ekranu = "[Tłumaczenie]"
 
-    # Tekst, który pojawi się na ekranie komputera
-    tekst_do_wyswietlenia = f"{naglowek_ekranu}: {wylosowany} {random.choice(DODATKOWE_ZDANIA)}"
-    
-    # CZYSTY tekst wysyłany do lektora (wykasowane znaczniki techniczne i kropki blokujące tempo)
-    tekst_do_czytania = f"{wylosowany} {random.choice(DODATKOWE_ZDANIA)}".replace(".", ",").replace("!", ",")
+    # Budujemy finalne wypowiedzi w zależności od flagi spójności kontekstu
+    if uzyj_dodatkowego:
+        dodatek = random.choice(DODATKOWE_ZDANIA)
+        tekst_do_wyswietlenia = f"{naglowek_ekranu}: {wylosowany} {dodatek}"
+        tekst_do_czytania = f"{wylosowany} {dodatek}"
+    else:
+        tekst_do_wyswietlenia = f"{naglowek_ekranu}: {wylosowany}"
+        tekst_do_czytania = f"{wylosowany}"
 
-    # --- GENEROWANIE I DODATKOWE PRZYSPIESZENIE GŁOSU O 15% ---
+    # Czyszczenie znaków interpunkcyjnych pod kątem płynności i tempa 15%
+    tekst_do_czytania = tekst_do_czytania.replace(".", ",").replace("!", ",")
+
+    # --- GENEROWANIE AUDIO ---
     tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp = io.BytesIO()
     tts.write_to_fp(fp)
@@ -196,7 +208,7 @@ if audio_nagrane is not None:
 st.write("---")
 col_foot1, col_foot2 = st.columns(2)
 with col_foot1:
-    st.caption("HauTłumacz TURBO v9.5 - Stabilna wersja chmurowa.")
+    st.caption("HauTłumacz SPÓJNY v9.6 - Stabilna wersja chmurowa.")
 with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
@@ -205,7 +217,7 @@ with col_foot2:
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz in celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
@@ -214,3 +226,4 @@ with col_foot2:
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
+
