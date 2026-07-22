@@ -219,10 +219,27 @@ st.markdown("""
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
 
-# --- SUROWY REJESTRATOR (PROSTO I AUTOMATYCZNIE) ---
+# --- PANCERNA WERYFIKACJA GATUNKU ---
+st.markdown("### 🎯 Kto stoi przed mikrofonem?")
+jestem_czlowiekiem = st.checkbox("👨 Testuję system jako Człowiek (Włącz ochronę przed udawaniem)", value=True)
+
+if jestem_czlowiekiem:
+    st.warning("🐑 Tryb ochrony włączony: Każda próba udawania szczekania zostanie zdemaskowana!")
+else:
+    st.info("🤖 Tryb analizy Hz aktywny: Nagraj szczekanie swojego psa.")
+
+st.write("")
 audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
 if audio_nagrane is not None:
+    audio_bytes = audio_nagrane.read()
+    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
+    
+    # TWARDY LOCKOUT: Jeśli ptaszek "Jestem Człowiekiem" jest zaznaczony, 
+    # zmuszamy algorytm do wejścia w strefę 150 Hz (Tryb Barana/Krowy)
+    if jestem_czlowiekiem:
+        wykryte_hz = 150.0
+
     audio_bytes = audio_nagrane.read()
     wykryte_hz = analizuj_czestotliwosc(audio_bytes)
     
