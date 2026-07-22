@@ -25,7 +25,7 @@ if "ostatnie_pokazywane_zdanie" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-# --- INTELIGENTNY DETEKTOR PSIEGO GŁOSU (NOWY FILTR) ---
+# --- INTELIGENTNY DETEKTOR PSIEGO GŁOSU (Z FILTREM HARMONICZNYM) ---
 def analizuj_czestotliwosc(audio_bytes):
     if not TRYB_ANALIZY:
         return 600.0, "pies"
@@ -34,24 +34,24 @@ def analizuj_czestotliwosc(audio_bytes):
         if len(data.shape) > 1:
             data = data[:, 0]
             
-        # 1. Analiza głośności i energii dźwięku
+        # 1. Odcięcie składowej stałej i normalizacja
+        data = data - np.mean(data)
         amplituda_max = np.max(np.abs(data))
-        if amplituda_max < 500:  
+        if amplituda_max < 300:  # Próg całkowitej ciszy
             return 600.0, "szum"
             
-        # 2. Analiza długości impulsu (szczeknięcie psa jest krótkie)
-        progowana_energia = np.abs(data) > (amplituda_max * 0.3)
+        # 2. Analiza czasu trwania głośnego fragmentu dźwięku
+        progowana_energia = np.abs(data) > (amplituda_max * 0.25)
+        if np.sum(progowana_energia) == 0:
+            return 600.0, "szum"
         czas_trwania_sekundy = np.sum(progowana_energia) / sample_rate
-        
-        # 3. Analiza ZCR (Zero Crossing Rate - chropowatość dźwięku)
-        zcr_value = np.sum(np.abs(np.diff(np.sign(data)))) / (2 * len(data))
 
-        # 4. Obliczanie FFT (częstotliwości)
+        # 3. Obliczanie widma częstotliwości (FFT)
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
         amplitudy = np.abs(fft_spectrum)
         
-        # Zawężamy pasmo szukania szczytu do granic realnych dla psa/człowieka
+        # Filtrujemy i zostawiamy tylko pasmo ludzkiej mowy i psa (85 - 3000 Hz)
         maska_pasma = (freq >= 85) & (freq <= 3000)
         if not np.any(maska_pasma):
             return 600.0, "szum"
@@ -60,24 +60,26 @@ def analizuj_czestotliwosc(audio_bytes):
         szczytowy_indeks = np.argmax(amplitudy_przefiltrowane)
         wykryte_hz = freq[szczytowy_indeks]
 
-        # --- BEZWZGLĘDNA BLOKADA CZŁOWIEKA ORAZ SZUMU ---
-        # Każde udawane szczeknięcie człowieka trwające dłużej niż 0.23 sekundy odpada.
-        if czas_trwania_sekundy > 0.23:
+        # 4. --- FILTR HARMONICZNOŚCI (LUDZKIE STRUNY GŁOSOWE VS PSI PYSK) ---
+        # Liczymy średnią głośność w paśmie i sprawdzamy jak bardzo najwyższy szczyt wybija się ponad tło.
+        # Ludzki głos tworzy jeden lub dwa potężne szczyty harmoniczne. Pies rozkłada energię szeroko i szorstko.
+        srednia_pasma = np.mean(amplitudy_przefiltrowane[maska_pasma])
+        stosunek_szczytu_do_sredniej = amplitudy_przefiltrowane[szczytowy_indeks] / (srednia_pasma + 1e-5)
+
+        # 5. --- DECYZJA KLASYFIKATORA ---
+        # Jeśli najwyższa częstotliwość potężnie dominuje nad resztą pasma (stosunek > 15.0), 
+        # oznacza to czysty, ludzki ton falowy (struny głosowe). Pies ma ten wskaźnik znacznie niższy (szum).
+        if stosunek_szczytu_do_sredniej > 15.0:
+            return wykryte_hz, "czlowiek"
+
+        # Dodatkowa blokada czasowa dla długich dźwięków (prawdziwe szczeknięcie nie ciągnie się w nieskończoność)
+        if czas_trwania_sekundy > 0.40:
             return wykryte_hz, "czlowiek"
             
-        # Ludzkie gardło generuje zbyt gładką falę (pies brzmi jak chropowaty szum)
-        if zcr_value < 0.18:
-            return wykryte_hz, "czlowiek"
-            
-        # Blokada typowych częstotliwości ludzkiej mowy i krzyku
-        if (130 <= wykryte_hz <= 270) and zcr_value < 0.32:
-            return wykryte_hz, "czlowiek"
-        
-        # Ciągłe, basowe buczenie lub hałas auta
         if wykryte_hz < 130 and czas_trwania_sekundy > 0.5:
             return wykryte_hz, "szum"
 
-        # Dźwięk dynamiczny, krótki i szorstki -> identyfikujemy jako psa
+        # Spełnia kryteria szorstkości, braku silnych czystych tonów i dynamiki -> to pies
         return wykryte_hz, "pies"
     except:
         return 600.0, "pies"
