@@ -21,7 +21,6 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-# --- ANALIZATOR AUDIO (FFT Z FILTREM PASMOWYM I BRAMKĄ SZUMU) ---
 def analizuj_czestotliwosc(audio_bytes):
     if not TRYB_ANALIZY:
         return 600.0
@@ -30,11 +29,23 @@ def analizuj_czestotliwosc(audio_bytes):
         if len(data.shape) > 1:
             data = data[:, 0]
             
+        # --- FILTR CZASU (BLOKADA LUDZKIEGO "HAUHAUHAU") ---
+        # Liczymy, jak długo dźwięk przekracza próg głośności.
+        # Prawdziwe szczeknięcie psa jest bardzo krótkie i nagłe.
+        max_amp = np.max(np.abs(data))
+        if max_amp > 0:
+            glosne_probki = np.sum(np.abs(data) > (max_amp * 0.25))
+            czas_trwania = glosne_probki / sample_rate
+            # Jeśli dźwięk ciągnie się bez przerwy dłużej niż 0.45 sekundy,
+            # twardo zrzucamy częstotliwość do strefy ludzkiej (np. 150 Hz)
+            if czas_trwania > 0.45:
+                return 150.0
+
+        # Standardowa analiza FFT dla krótkich dźwięków (prawdziwych szczeknięć)
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
         amplitudy = np.abs(fft_spectrum)
         
-        # FILTR: Interesuje nas tylko zakres 85Hz - 3000Hz. Resztę (szum aut, pukanie) zerujemy.
         maska_pasma = (freq >= 85) & (freq <= 3000)
         if not np.any(maska_pasma):
             return 600.0
@@ -42,7 +53,6 @@ def analizuj_czestotliwosc(audio_bytes):
         amplitudy_przefiltrowane = np.where(maska_pasma, amplitudy, 0)
         szczytowa_indeks = np.argmax(amplitudy_przefiltrowane)
         
-        # BRAMKA SZUMU: Jeśli dźwięk w pokoju jest zbyt cichy, ignorujemy go
         if amplitudy_przefiltrowane[szczytowa_indeks] < 1000000:
             return 600.0
             
