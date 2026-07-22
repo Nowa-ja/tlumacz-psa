@@ -229,47 +229,38 @@ st.markdown(f"""
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
 
-# --- SUROWY REJESTRATOR AUDIO ---
-audio_nagrane = st.audio_input("Najpierw nagraj dźwięk z mikrofonu:")
+# --- BEZBŁĘDNA WERYFIKACJA NA EKRANIE ---
+st.markdown("### 🎯 Kto wydaje dźwięk?")
+obiekt_nagrania = st.selectbox(
+    "Wybierz z listy przed nagraniem:",
+    ["🐶 Prawdziwy Pies", "👨 Człowiek (chcę sprawdzić system)"],
+    label_visibility="collapsed"
+)
+
+st.write("")
+audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
 if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
-    
-    # Pobieramy częstotliwość Hz z pliku
     wykryte_hz, status_dzwieku = analizuj_audio_ai(audio_bytes)
     
-    st.write("---")
-    st.markdown("### 🎯 Kto wydał ten dźwięk? Wybierz przycisk, aby przetłumaczyć:")
-    
-    col_btn1, col_btn2 = st.columns(2)
-    uruchom_tlumaczenie = False
-    
-    with col_btn1:
-        if st.button("🐶 To był mój Pies (Tłumacz Hz)", use_container_width=True):
-            # Akceptujemy dźwięk i przepuszczamy do bazy psów
-            status_dzwieku = "pies"
-            uruchom_tlumaczenie = True
-            
-    with col_btn2:
-        if st.button("👨 To byłem Ja (Sprawdź system)", use_container_width=True):
-            # Bezwzględnie blokujemy i wymuszamy komunikat o człowieku
-            status_dzwieku = "czlowiek"
-            uruchom_tlumaczenie = True
-
-    if uruchom_tlumaczenie:
-        teraz = datetime.now().time()
-        final_tekst = ""
-        naglowek_ekranu = ""
+    # WYMUSZENIE: Jeśli z menu wybrano człowieka, bezwzględnie zmieniamy status
+    if obiekt_nagrania == "👨 Człowiek (chcę sprawdzić system)":
+        status_dzwieku = "czlowiek"
         
-        is_morning = time(4, 30) <= teraz < time(7, 0)
-        is_pre_noon = time(7, 0) <= teraz < time(11, 0)
-        is_noon = time(11, 0) <= teraz < time(14, 0)
-        is_afternoon = time(14, 0) <= teraz < time(19, 0)
-        is_evening = time(19, 0) <= teraz < time(23, 0)
-        is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+    teraz = datetime.now().time()
+    final_tekst = ""
+    naglowek_ekranu = ""
     
-        if TRYB_ANALIZY:
-            st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+    is_morning = time(4, 30) <= teraz < time(7, 0)
+    is_pre_noon = time(7, 0) <= teraz < time(11, 0)
+    is_noon = time(11, 0) <= teraz < time(14, 0)
+    is_afternoon = time(14, 0) <= teraz < time(19, 0)
+    is_evening = time(19, 0) <= teraz < time(23, 0)
+    is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+
+    if TRYB_ANALIZY:
+        st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
 
     audio_bytes = audio_nagrane.read()
