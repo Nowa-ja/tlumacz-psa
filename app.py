@@ -222,7 +222,7 @@ if przycisk_analizy:
         is_evening = time(19, 0) <= teraz < time(23, 0)
         is_night = teraz >= time(23, 0) or teraz < time(4, 30)
 
-        # SPRAWDZENIE: Jeśli w formularzu wybrano człowieka, program twardo ignoruje Hz!
+        # --- TWARDA I BEZWZGLĘDNA BLOKADA CZŁOWIEKA ---
         if "Ja osobiście" in opcja_obiektu:
             final_tekst = random.choice([
                 "Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa słyszę barana lub osła! Mówiłem, żebyś nagrał psa! 🐑",
@@ -231,8 +231,9 @@ if przycisk_analizy:
                 "Słyszę osła! Aplikacja służy do tłumaczenia prawdziwych zwierzaków, a nie Twoich wygłupów!"
             ])
             naglowek_ekranu = "[❌ Wykryto Podrabianie - Tryb Człowieka]"
+            
         else:
-            # Tryb Psa: analiza częstotliwości Hz
+            # --- TRYB PSA (ANALIZA CZĘSTOTLIWOŚCI HZ) ---
             if TRYB_ANALIZY and wykryte_hz < 200:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_GIGANT_STRES)
                 naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Gigant]"
@@ -268,7 +269,7 @@ if przycisk_analizy:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                     naglowek_ekranu = "[Nocny Alarm]"
 
-        # Generowanie mowy lektora
+        # --- GENEROWANIE MOWY I WYNIKÓW ---
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
         fp_raw = io.BytesIO()
