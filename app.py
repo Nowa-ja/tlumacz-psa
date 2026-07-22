@@ -21,7 +21,7 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-# --- PROSTA FUNKCJA DO ANALIZY HZ (CZYSZCZONA ZE SPEKTRUM) ---
+# --- ANALIZATOR AUDIO (FFT Z FILTREM PASMOWYM I BRAMKĄ SZUMU) ---
 def analizuj_czestotliwosc(audio_bytes):
     if not TRYB_ANALIZY:
         return 600.0
@@ -29,13 +29,24 @@ def analizuj_czestotliwosc(audio_bytes):
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
             data = data[:, 0]
+            
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
-        szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
-        wykryte = freq[szczytowa_indeks]
-        if wykryte < 50 or wykryte > 3000:
+        amplitudy = np.abs(fft_spectrum)
+        
+        # FILTR: Interesuje nas tylko zakres 85Hz - 3000Hz. Resztę (szum aut, pukanie) zerujemy.
+        maska_pasma = (freq >= 85) & (freq <= 3000)
+        if not np.any(maska_pasma):
             return 600.0
-        return wykryte
+            
+        amplitudy_przefiltrowane = np.where(maska_pasma, amplitudy, 0)
+        szczytowa_indeks = np.argmax(amplitudy_przefiltrowane)
+        
+        # BRAMKA SZUMU: Jeśli dźwięk w pokoju jest zbyt cichy, ignorujemy go
+        if amplitudy_przefiltrowane[szczytowa_indeks] < 1000000:
+            return 600.0
+            
+        return freq[szczytowa_indeks]
     except:
         return 600.0
 
@@ -89,7 +100,7 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "O której to wracasz?",
     "Fajnie, że jesteś, ale teraz szybko chodźmy.",
     "Jeszcze chwila a się sfajdam!",
-    "Chodź szybko na spacer to zobaczysz coś ciekego.",
+    "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
 
@@ -166,6 +177,9 @@ TEKSTY_MINIATURA_JAMNIK = [
     "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę i nie wiem, jak to wykorzystać - moja miska jest pusta!"
 ]
 
+FONETYCZNY_BARAN = "Bęęęęęęęęęęęęęęę!"
+FONETYCZNA_KROWA = "Móóóóóóóóóóóóóóóó!"
+
 # --- FUNKCJA LOSUJĄCA JEDNO ZDANIE ---
 def pobierz_tekst_kontekstowy(baza):
     dostepne = [t for t in baza if t not in st.session_state.wykorzystane_teksty]
@@ -192,112 +206,102 @@ st.markdown("""
 
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
-# --- BEZBŁĘDNY FORMULARZ PRZETWARZANIA (BLOKUJE PAMIĘĆ SERWERA) ---
-with st.form("formularz_tlumacza"):
-    st.markdown("### 🎯 Krok 1: Kto wydaje dźwięk na nagraniu?")
-    opcja_obiektu = st.selectbox(
-        "Wskaż autora dźwięku:",
-        ["🐶 Prawdziwy Pies (Uruchom analizę Hz)", "👨 Ja osobiście (Chcę sprawdzić system)"]
-    )
-    
-    st.markdown("### 🔊 Krok 2: Nagraj lub prześlij dźwięk")
-    audio_nagrane = st.audio_input("Nagraj dźwięk:")
-    
-    st.write("")
-    przycisk_analizy = st.form_submit_button("🚀 PRZETŁUMACZ DŹWIĘK TERAZ")
 
-if przycisk_analizy:
-    if audio_nagrane is not None:
-        audio_bytes = audio_nagrane.read()
-        wykryte_hz = analizuj_czestotliwosc(audio_bytes)
-        
-        teraz = datetime.now().time()
-        final_tekst = ""
-        naglowek_ekranu = ""
-        
-        is_morning = time(4, 30) <= teraz < time(7, 0)
-        is_pre_noon = time(7, 0) <= teraz < time(11, 0)
-        is_noon = time(11, 0) <= teraz < time(14, 0)
-        is_afternoon = time(14, 0) <= teraz < time(19, 0)
-        is_evening = time(19, 0) <= teraz < time(23, 0)
-        is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+# --- SUROWY REJESTRATOR (PROSTO I AUTOMATYCZNIE) ---
+audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
-        # --- TWARDA I BEZWZGLĘDNA BLOKADA CZŁOWIEKA ---
-        if "Ja osobiście" in opcja_obiektu:
-            final_tekst = random.choice([
-                "Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa słyszę barana lub osła! Mówiłem, żebyś nagrał psa! 🐑",
-                "Marna podróbka! Twój pies właśnie schował głowę pod poduszkę ze wstydu za Twoje ludzkie szczekanie.",
-                "Wykryto człowieka próbującego mówić po psiemu. Twój akcent jest fatalny, przestań pyskować!",
-                "Słyszę osła! Aplikacja służy do tłumaczenia prawdziwych zwierzaków, a nie Twoich wygłupów!"
-            ])
-            naglowek_ekranu = "[❌ Wykryto Podrabianie - Tryb Człowieka]"
-            
+if audio_nagrane is not None:
+    audio_bytes = audio_nagrane.read()
+    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
+    
+    teraz = datetime.now().time()
+    final_tekst = ""
+    naglowek_ekranu = ""
+    
+    is_morning = time(4, 30) <= teraz < time(7, 0)
+    is_pre_noon = time(7, 0) <= teraz < time(11, 0)
+    is_noon = time(11, 0) <= teraz < time(14, 0)
+    is_afternoon = time(14, 0) <= teraz < time(19, 0)
+    is_evening = time(19, 0) <= teraz < time(23, 0)
+    is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+
+    if TRYB_ANALIZY:
+        st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+
+    # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 255 Hz) ---
+    if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
+        if wykryte_hz < 165:
+            zwierze = FONETYCZNY_BARAN
+            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
+            naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
-            # --- TRYB PSA (ANALIZA CZĘSTOTLIWOŚCI HZ) ---
-            if TRYB_ANALIZY and wykryte_hz < 200:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_GIGANT_STRES)
-                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Gigant]"
-            elif TRYB_ANALIZY and 200 <= wykryte_hz < 450:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
-                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
-            elif TRYB_ANALIZY and 450 <= wykryte_hz < 800:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
-                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-            elif TRYB_ANALIZY and 800 <= wykryte_hz < 1200:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
-                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-            elif TRYB_ANALIZY and wykryte_hz >= 1200:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
-                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
-            else:
-                if is_morning:
-                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
-                    naglowek_ekranu = "[Poranny Bieguniem]"
-                elif is_pre_noon:
-                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
-                    naglowek_ekranu = "[Przedpołudniowy Samotnik]"
-                elif is_noon:
-                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
-                    naglowek_ekranu = "[Południowa Rozgrywka]"
-                elif is_afternoon:
-                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                    naglowek_ekranu = "[Popołudniowa Radość]"
-                elif is_evening:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
-                    naglowek_ekranu = "[Wieczorny Relaks]"
-                elif is_night:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                    naglowek_ekranu = "[Nocny Alarm]"
+            zwierze = FONETYCZNA_KROWA
+            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
+            naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
+            
+        final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
 
-        # --- GENEROWANIE MOWY I WYNIKÓW ---
-        tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
-        tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
-        fp_raw = io.BytesIO()
-        tts.write_to_fp(fp_raw)
-        fp_raw.seek(0)
-        
-        try:
-            sample_rate, data = wavfile.read(fp_raw)
-            skurczony_rozmiar = int(len(data) / 1.15)
-            indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
-            przyspieszone_data = data[indeksy]
-            fp = io.BytesIO()
-            wavfile.write(fp, sample_rate, przyspieszone_data)
-            fp.seek(0)
-        except:
-            fp = fp_raw
-        
-        st.write("---")
-        st.markdown("### 📊 Wynik analizy")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("🔊 **Odtwórz głosowo:**")
-            st.audio(fp, format="audio/wav", autoplay=True)
-        with col2:
-            st.write("💬 **Tłumaczenie tekstowe:**")
-            st.success(f"{naglowek_ekranu}: {final_tekst}")
+    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEZ 255 Hz LUB CZASOWE) ---
     else:
-        st.warning("⚠️ Najpierw musisz nagrać jakikolwiek dźwięk, aby móc go przetłumaczyć!")
+        if TRYB_ANALIZY and 255 < wykryte_hz < 450:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
+        elif TRYB_ANALIZY and 450 <= wykryte_hz < 800:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
+        elif TRYB_ANALIZY and 800 <= wykryte_hz < 1200:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
+        elif TRYB_ANALIZY and wykryte_hz >= 1200:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+        else:
+            if is_morning:
+                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
+                naglowek_ekranu = "[Poranny Bieguniem]"
+            elif is_pre_noon:
+                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
+                naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+            elif is_noon:
+                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
+                naglowek_ekranu = "[Południowa Rozgrywka]"
+            elif is_afternoon:
+                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+                naglowek_ekranu = "[Popołudniowa Radość]"
+            elif is_evening:
+                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
+                naglowek_ekranu = "[Wieczorny Relaks]"
+            elif is_night:
+                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+                naglowek_ekranu = "[Nocny Alarm]"
+
+    # Generowanie mowy lektora
+    tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
+    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
+    fp_raw = io.BytesIO()
+    tts.write_to_fp(fp_raw)
+    fp_raw.seek(0)
+    
+    try:
+        sample_rate, data = wavfile.read(fp_raw)
+        skurczony_rozmiar = int(len(data) / 1.15)
+        indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
+        przyspieszone_data = data[indeksy]
+        fp = io.BytesIO()
+        wavfile.write(fp, sample_rate, przyspieszone_data)
+        fp.seek(0)
+    except:
+        fp = fp_raw
+    
+    st.write("---")
+    st.markdown("### 📊 Wynik analizy")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("🔊 **Odtwórz głosowo:**")
+        st.audio(fp, format="audio/wav", autoplay=True)
+    with col2:
+        st.write("💬 **Tłumaczenie tekstowe:**")
+        st.success(f"{naglowek_ekranu}: {final_tekst}")
 
 # ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
 st.write("---")
