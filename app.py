@@ -21,10 +21,10 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-def analizuj_czestotliwosc(audio_bytes):
-    # NOWOŚĆ: Jeśli użytkownik zaznaczył na ekranie, że jest człowiekiem,
-    # od razu zwracamy 150 Hz, zanim serwer w ogóle dotknie pliku audio!
-    if "jestem_czlowiekiem" in st.session_state and st.session_state.jestem_czlowiekiem:
+def analizuj_czestotliwosc(audio_bytes, blokada_ludzka):
+    # TWARDY LOCKOUT: Jeśli użytkownik zaznaczył na ekranie człowieka,
+    # od razu zwracamy 150 Hz, odcinając całą resztę kapryśnego kodu!
+    if blokada_ludzka:
         return 150.0
         
     if not TRYB_ANALIZY:
@@ -34,20 +34,17 @@ def analizuj_czestotliwosc(audio_bytes):
         if len(data.shape) > 1:
             data = data[:, 0]
             
-        # --- FILTR CZASU (ZMODYFIKOWANA BLOKADA LUDZKIEGO "HAUHAUHAU") ---
-        # Mierzymy stosunek energii impulsu do całego czasu nagrania.
+        # --- FILTR CZASU ---
         max_amp = np.max(np.abs(data))
         if max_amp > 0:
             glosne_probki = np.sum(np.abs(data) > (max_amp * 0.15))
             czas_trwania = glosne_probki / sample_rate
             Dlugosc_calego_pliku = len(data) / sample_rate
             
-            # Jeśli dźwięk trwa dłużej niż 0.25 sekundy LUB zajmuje zbyt dużą część nagrania,
-            # to na 100% jest to ludzkie, przeciągane szczekanie lub wycie.
             if czas_trwania > 0.25 or (czas_trwania / Dlugosc_calego_pliku > 0.10):
                 return 150.0
 
-        # Standardowa analiza FFT dla krótkich dźwięków (prawdziwych szczeknięć)
+        # Standardowa analiza FFT
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
         amplitudy = np.abs(fft_spectrum)
@@ -64,11 +61,10 @@ def analizuj_czestotliwosc(audio_bytes):
             
         return freq[szczytowa_indeks]
     except:
-        # AWARYJNE BEZPIECZEŃSTWO: Jeśli chmura nie potrafi odczytać formatu nagrania,
-        # sprawdzamy ptaszek po raz drugi. Jeśli to człowiek -> dajemy 150 Hz.
-        if "jestem_czlowiekiem" in st.session_state and st.session_state.jestem_czlowiekiem:
+        if blokada_ludzka:
             return 150.0
         return 600.0
+
 
         
 
@@ -236,7 +232,7 @@ jestem_czlowiekiem = st.checkbox("👨 Testuję system jako Człowiek (Włącz o
 if jestem_czlowiekiem:
     st.warning("🐑 Tryb ochrony włączony: Każda próba udawania szczekania zostanie zdemaskowana!")
 else:
-    st.info("🤖 Tryb analizy Hz aktywny: Nagraj szczekanie swojego psa.")
+        wykryte_hz = analizuj_czestotliwosc(audio_bytes, jestem_czlowiekiem)
 
 st.write("")
 audio_nagrane = st.audio_input("Nagraj dźwięk:")
