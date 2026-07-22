@@ -22,6 +22,11 @@ if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
 def analizuj_czestotliwosc(audio_bytes):
+    # NOWOŚĆ: Jeśli użytkownik zaznaczył na ekranie, że jest człowiekiem,
+    # od razu zwracamy 150 Hz, zanim serwer w ogóle dotknie pliku audio!
+    if "jestem_czlowiekiem" in st.session_state and st.session_state.jestem_czlowiekiem:
+        return 150.0
+        
     if not TRYB_ANALIZY:
         return 600.0
     try:
@@ -59,7 +64,12 @@ def analizuj_czestotliwosc(audio_bytes):
             
         return freq[szczytowa_indeks]
     except:
+        # AWARYJNE BEZPIECZEŃSTWO: Jeśli chmura nie potrafi odczytać formatu nagrania,
+        # sprawdzamy ptaszek po raz drugi. Jeśli to człowiek -> dajemy 150 Hz.
+        if "jestem_czlowiekiem" in st.session_state and st.session_state.jestem_czlowiekiem:
+            return 150.0
         return 600.0
+
         
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
