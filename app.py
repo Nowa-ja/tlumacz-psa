@@ -95,7 +95,7 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
 ]
 
 TEKSTY_WIECZORNE = [
-    "Jeszcze tylko kupkę, siku i można w kimono!", 
+    "Jeszcze tylko kupkę, śiku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
     "Mogę zesrać się tutaj - nie musimy wychodzić!",
     "Fundamentalne pytanie brzmi - srać czy nie srać?",
