@@ -60,9 +60,17 @@ def analizuj_czestotliwosc(audio_bytes):
         szczytowy_indeks = np.argmax(amplitudy_przefiltrowane)
         wykryte_hz = freq[szczytowy_indeks]
 
-               # --- LOGIKA ODSEJOWANIA PODRÓBEK ---
-        # Jeśli dźwięk trwa za długo lub jest zbyt płynny, melodyjny (niski ZCR) -> to człowiek
-        if czas_trwania_sekundy > 0.35 or zcr_value < 0.12:
+        # --- BEZWZGLĘDNA BLOKADA CZŁOWIEKA ORAZ SZUMU ---
+        # Każde udawane szczeknięcie człowieka trwające dłużej niż 0.23 sekundy odpada.
+        if czas_trwania_sekundy > 0.23:
+            return wykryte_hz, "czlowiek"
+            
+        # Ludzkie gardło generuje zbyt gładką falę (pies brzmi jak chropowaty szum)
+        if zcr_value < 0.18:
+            return wykryte_hz, "czlowiek"
+            
+        # Blokada typowych częstotliwości ludzkiej mowy i krzyku
+        if (130 <= wykryte_hz <= 270) and zcr_value < 0.32:
             return wykryte_hz, "czlowiek"
         
         # Ciągłe, basowe buczenie lub hałas auta
