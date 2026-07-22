@@ -21,53 +21,6 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-def analizuj_czestotliwosc(audio_bytes, blokada_ludzka):
-    # TWARDY LOCKOUT: Jeśli użytkownik zaznaczył na ekranie człowieka,
-    # od razu zwracamy 150 Hz, odcinając całą resztę kapryśnego kodu!
-    if blokada_ludzka:
-        return 150.0
-        
-    if not TRYB_ANALIZY:
-        return 600.0
-    try:
-        sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
-        if len(data.shape) > 1:
-            data = data[:, 0]
-            
-        # --- FILTR CZASU ---
-        max_amp = np.max(np.abs(data))
-        if max_amp > 0:
-            glosne_probki = np.sum(np.abs(data) > (max_amp * 0.15))
-            czas_trwania = glosne_probki / sample_rate
-            Dlugosc_calego_pliku = len(data) / sample_rate
-            
-            if czas_trwania > 0.25 or (czas_trwania / Dlugosc_calego_pliku > 0.10):
-                return 150.0
-
-        # Standardowa analiza FFT
-        fft_spectrum = np.fft.rfft(data)
-        freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
-        amplitudy = np.abs(fft_spectrum)
-        
-        maska_pasma = (freq >= 85) & (freq <= 3000)
-        if not np.any(maska_pasma):
-            return 600.0
-            
-        amplitudy_przefiltrowane = np.where(maska_pasma, amplitudy, 0)
-        szczytowa_indeks = np.argmax(amplitudy_przefiltrowane)
-        
-        if amplitudy_przefiltrowane[szczytowa_indeks] < 1000000:
-            return 600.0
-            
-        return freq[szczytowa_indeks]
-    except:
-        if blokada_ludzka:
-            return 150.0
-        return 600.0
-
-
-        
-
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 
 GRUPA_TEKSTY_PORANNE = [
@@ -113,6 +66,7 @@ GRUPA_TEKSTOW_POLUDNIOWYCH = [
     "Rzucaj tę kość, tylko tym razem dobrze!",
     "Pobiegamy razem?"
 ]
+
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Tak jak się umawialiśmy - jestem tutaj.",
     "O której to wracasz?",
@@ -121,7 +75,6 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
-
 TEKSTY_WIECZORNE = [
     "Jeszcze tylko kupkę, siku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
@@ -146,53 +99,6 @@ TEKSTY_NOCNE = [
     "Jest tam kto?",
     "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!",
     "W co ja się wpakowałem...!!!"
-]
-
-TEKSTY_GIGANT_STRES = [
-    "Kroczysz po bardzo cienkim lodzie, zatrzymaj się.", 
-    "Czy naprawdę chce ci się uciekać?",
-    "Odejdź stąd.",
-    "Zbłądziłeś?",
-    "Tutaj nie znajdziesz pustego nakrycia dla wędrowca.",
-    "Pomyliłeś chyba adres?",
-    "Agnieszka już tutaj nie mieszka.",
-    "Artykuł dwudziesty piąty Kodeksu Karnego jest po mojej stronie.",
-    "Ja już jadłem kolację, ale możesz wystawić palca.",
-    "Ostrzegam, nie podchodź!",
-    "To nie jest dobry pomysł!",
-    "Odejdź.",
-    "Ja sobie twój zapach zapamiętam.",
-    "Człowieku, cofnij się.",
-    "Nie chcę ciebie tutaj.",
-    "Nie znajdziesz tutaj kolegów.",
-    "Moje ego nie lubi sprzeciwu, więc przemyśl, czy warto się zbliżać.",
-    "Pojawiłem się tutaj znikąd, a ty nadal nie wyciągasz wniosków?",
-    "Posłuchaj, białasie, mnie nie obchodzi, kogo tam znasz - rób nawrotkę!"
-]
-
-TEKSTY_DUZY_OWCZAREK_ZABAWA = [
-    "Dawaj parówkę albo sam sobie wezmę kawał mięcha!",
-    "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?",
-    "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
-    "A teraz rzuć swojską!"
-]
-
-TEKSTY_SREDNI_BEAGLE = [
-    "Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.",
-    "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!",
-    "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"
-]
-
-TEKSTY_MALUCH = [
-    "Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!",
-    "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz.",
-    "Właśnie opracowałem plan, jak przejąć kontrolę nad lodówką. Potrzebuję tylko twojego odcisku palca."
-]
-
-TEKSTY_MINIATURA_JAMNIK = [
-    "Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!",
-    "Jestem małym, wściekłym demonem! Ale potrafię zajść ci za skórę!",
-    "Właśnie się dowiedziałem, że sąsiad chodzi na lewiznę i nie wiem, jak to wykorzystać - moja miska jest pusta!"
 ]
 
 FONETYCZNY_BARAN = "Bęęęęęęęęęęęęęęę!"
@@ -232,20 +138,12 @@ jestem_czlowiekiem = st.checkbox("👨 Testuję system jako Człowiek (Włącz o
 if jestem_czlowiekiem:
     st.warning("🐑 Tryb ochrony włączony: Każda próba udawania szczekania zostanie zdemaskowana!")
 else:
-        wykryte_hz = analizuj_czestotliwosc(audio_bytes, jestem_czlowiekiem)
+    st.info("🤖 Tryb analizy aktywny: Nagraj szczekanie swojego psa.")
 
 st.write("")
 audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
 if audio_nagrane is not None:
-    audio_bytes = audio_nagrane.read()
-    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
-    
-    # TWARDY LOCKOUT: Jeśli ptaszek "Jestem Człowiekiem" jest zaznaczony, 
-    # zmuszamy algorytm do wejścia w strefę 150 Hz i NIE pozwalamy na nadpisanie!
-    if jestem_czlowiekiem:
-        wykryte_hz = 150.0
-    
     teraz = datetime.now().time()
     final_tekst = ""
     naglowek_ekranu = ""
@@ -257,56 +155,39 @@ if audio_nagrane is not None:
     is_evening = time(19, 0) <= teraz < time(23, 0)
     is_night = teraz >= time(23, 0) or teraz < time(4, 30)
 
-    if TRYB_ANALIZY:
-        st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
-
-    # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 255 Hz) ---
-    if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
-        if wykryte_hz < 165:
-            zwierze = FONETYCZNY_BARAN
-            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
+    # --- TWARDE I BEZBŁĘDNE SPRAWDZENIE PTASZKA OCHRONY ---
+    if jestem_czlowiekiem:
+        # Losujemy jeden z Twoich żartów na człowieka i twardo blokujemy psa
+        zwierze = random.choice([FONETYCZNY_BARAN, FONETYCZNA_KROWA])
+        if zwierze == FONETYCZNY_BARAN:
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
+            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
         else:
-            zwierze = FONETYCZNA_KROWA
-            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
+            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
             
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
-
-    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 255 Hz LUB CZASOWE) ---
+        
     else:
-        if TRYB_ANALIZY and 255 < wykryte_hz < 450:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
-        elif TRYB_ANALIZY and 450 <= wykryte_hz < 800:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-        elif TRYB_ANALIZY and 800 <= wykryte_hz < 1200:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-        elif TRYB_ANALIZY and wykryte_hz >= 1200:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
-        else:
-            if is_morning:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
-                naglowek_ekranu = "[Poranny Bieguniem]"
-            elif is_pre_noon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
-                naglowek_ekranu = "[Przedpołudniowy Samotnik]"
-            elif is_noon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
-                naglowek_ekranu = "[Południowa Rozgrywka]"
-            elif is_afternoon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                naglowek_ekranu = "[Popołudniowa Radość]"
-            elif is_evening:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
-                naglowek_ekranu = "[Wieczorny Relaks]"
-            elif is_night:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                naglowek_ekranu = "[Nocny Alarm]"
-
+        # --- TRYB PSA (LOSOWANIE SENSOWNYCH ZDAŃ WEDŁUG PORA DNIA) ---
+        if is_morning:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
+            naglowek_ekranu = "[Poranny Bieguniem]"
+        elif is_pre_noon:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
+            naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+        elif is_noon:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
+            naglowek_ekranu = "[Południowa Rozgrywka]"
+        elif is_afternoon:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+            naglowek_ekranu = "[Popołudniowa Radość]"
+        elif is_evening:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
+            naglowek_ekranu = "[Wieczorny Relaks]"
+        elif is_night:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+            naglowek_ekranu = "[Nocny Alarm]"
 
     # Generowanie mowy lektora
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
