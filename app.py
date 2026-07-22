@@ -4,6 +4,7 @@ import random
 from datetime import datetime, time
 from scipy.io import wavfile
 import numpy as np
+from gtts import gTTS
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
 st.set_page_config(page_title="HauTłumacz PRO v10.4", page_icon="🐕", layout="centered")
@@ -14,7 +15,7 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-# --- STABILNA ANALIZA HZ DLA PSA ---
+# --- STABILNA ANALIZA HZ DLA AUTOMATU ---
 def analizuj_czestotliwosc(audio_bytes):
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
@@ -55,7 +56,6 @@ GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = [
     "Po co idziesz do pracy, dołek możesz wykopać tutaj.",
     "Weź mnie ze sobą, będę pilnować pieniędzy."
 ]
-
 TEKSTY_DZIENNE_ZABAWA = [
     "Interesują mnie tylko konkrety - gdzie są parówki?!",
     "Konkrety to smakołyki.",
@@ -75,6 +75,7 @@ GRUPA_TEKSTOW_POLUDNIOWYCH = [
     "Rzucaj tę kość, tylko tym razem dobrze!",
     "Pobiegamy razem?"
 ]
+
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Tak jak się umawialiśmy - jestem tutaj.",
     "O której to wracasz?",
@@ -108,21 +109,6 @@ TEKSTY_NOCNE = [
     "Jest tam kto?",
     "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!",
     "W co ja się wpakowałem...!!!"
-]
-
-TEKSTY_GIGANT_STRES = [
-    "Kroczysz po bardzo cienkim lodzie, zatrzymaj się.", 
-    "Czy naprawdę chce ci się uciekać?",
-    "Odejdź stąd.",
-    "Zbłądziłeś?",
-    "Tutaj nie znajdziesz pustego nakrycia dla wędrowca.",
-    "Pomyliłeś chyba adres?",
-    "Agnieszka już tutaj nie mieszka.",
-    "To nie jest dobry pomysł!",
-    "Odejdź.",
-    "Ja sobie twój zapach zapamiętam.",
-    "Człowieku, cofnij się.",
-    "Nie chcę ciebie tutaj."
 ]
 
 TEKSTY_DUZY_OWCZAREK_ZABAWA = [
@@ -177,24 +163,7 @@ st.markdown("""
 
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
-
-# --- KAFELKI ST.PILLS Z ZABEZPIECZENIEM WERSJI ---
-st.markdown("### 🎯 Kto wydaje dźwięk na nagraniu?")
-try:
-    wybor_obiektu = st.pills(
-        "Wybierz autora dźwięku:",
-        ["🐶 Prawdziwy Pies", "👨 Ja osobiście (Test systemu)"],
-        default="🐶 Prawdziwy Pies",
-        label_visibility="collapsed"
-    )
-except AttributeError:
-    wybor_obiektu = st.selectbox(
-        "Wybierz autora dźwięku:",
-        ["🐶 Prawdziwy Pies", "👨 Ja osobiście (Test systemu)"],
-        label_visibility="collapsed"
-    )
-
-st.write("")
+# --- SUROWY REJESTRATOR (PROSTO I AUTOMATYCZNIE) ---
 audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
 if audio_nagrane is not None:
@@ -212,15 +181,16 @@ if audio_nagrane is not None:
     is_evening = time(19, 0) <= teraz < time(23, 0)
     is_night = teraz >= time(23, 0) or teraz < time(4, 30)
 
-        # --- NOWY, BEZWZGLĘDNY I AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU ---
-    # Podnosimy próg blokady ludzkiego udawania aż do 600 Hz!
-    if TRYB_ANALIZY and (85 <= wykryte_hz <= 600):
+    st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+
+    # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 600 Hz) ---
+    if 85 <= wykryte_hz <= 600:
         if wykryte_hz < 180:
             zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
-            zwierze = FONETYCZNA_KROWA
+            zwierze = FONETYCNZA_KROWA
             komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
@@ -230,15 +200,15 @@ if audio_nagrane is not None:
         final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
         naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
 
-    # --- TRYB PSA (URUCHAMIANY TYLKO DLA PRAWDZIWYCH PSIYCH DŹWIĘKÓW > 600 Hz) ---
+    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 600 Hz) ---
     else:
-        if TRYB_ANALIZY and 600 < wykryte_hz < 900:
+        if 600 < wykryte_hz < 900:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-        elif TRYB_ANALIZY and 900 <= wykryte_hz < 1400:
+        elif 900 <= wykryte_hz < 1400:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-        elif TRYB_ANALIZY and wykryte_hz >= 1400:
+        elif wykryte_hz >= 1400:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
         else:
@@ -261,8 +231,7 @@ if audio_nagrane is not None:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Nocny Alarm]"
 
-
-    # Generowanie mowy lektora gTTS
+    # Generowanie mowy lektora
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
     tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp_raw = io.BytesIO()
