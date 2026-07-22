@@ -229,38 +229,52 @@ st.markdown(f"""
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
 
-# --- BEZBŁĘDNA WERYFIKACJA NA EKRANIE ---
-st.markdown("### 🎯 Kto wydaje dźwięk?")
-obiekt_nagrania = st.selectbox(
-    "Wybierz z listy przed nagraniem:",
-    ["🐶 Prawdziwy Pies", "👨 Człowiek (chcę sprawdzić system)"],
-    label_visibility="collapsed"
-)
+# --- SYSTEM BLOKADY Z PAMIĘCIĄ SESJI ---
+if "tryb_obiektu" not in st.session_state:
+    st.session_state.tryb_obiektu = None
 
-st.write("")
-audio_nagrane = st.audio_input("Nagraj dźwięk:")
+st.markdown("### 🎯 Kogo chcesz teraz nagrać?")
+col_t1, col_t2 = st.columns(2)
 
-if audio_nagrane is not None:
-    audio_bytes = audio_nagrane.read()
-    wykryte_hz, status_dzwieku = analizuj_audio_ai(audio_bytes)
-    
-    # WYMUSZENIE: Jeśli z menu wybrano człowieka, bezwzględnie zmieniamy status
-    if obiekt_nagrania == "👨 Człowiek (chcę sprawdzić system)":
-        status_dzwieku = "czlowiek"
+with col_t1:
+    if st.button("🐶 Prawdziwego Psa", use_container_width=True):
+        st.session_state.tryb_obiektu = "pies"
+with col_t2:
+    if st.button("👨 Siebie (Sprawdź system)", use_container_width=True):
+        st.session_state.tryb_obiektu = "czlowiek"
+
+# Mikrofon i kod uruchomią się TYLKO, gdy użytkownik świadomie kliknie jeden z przycisków
+if st.session_state.tryb_obiektu is not None:
+    st.write("")
+    if st.session_state.tryb_obiektu == "pies":
+        st.info("🤖 Tryb: Tłumaczenie Psa. Nagraj szczekanie pupila.")
+    else:
+        st.warning("🐑 Tryb: Test Człowieka. Nagraj swoje udawane szczekanie.")
         
-    teraz = datetime.now().time()
-    final_tekst = ""
-    naglowek_ekranu = ""
-    
-    is_morning = time(4, 30) <= teraz < time(7, 0)
-    is_pre_noon = time(7, 0) <= teraz < time(11, 0)
-    is_noon = time(11, 0) <= teraz < time(14, 0)
-    is_afternoon = time(14, 0) <= teraz < time(19, 0)
-    is_evening = time(19, 0) <= teraz < time(23, 0)
-    is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+    audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
-    if TRYB_ANALIZY:
-        st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+    if audio_nagrane is not None:
+        audio_bytes = audio_nagrane.read()
+        wykryte_hz, status_dzwieku = analizuj_audio_ai(audio_bytes)
+        
+        # Twarde nadpisanie z pamięci chmury - nie do oszukania przez przeładowanie strony!
+        if st.session_state.tryb_obiektu == "czlowiek":
+            status_dzwieku = "czlowiek"
+            
+        teraz = datetime.now().time()
+        final_tekst = ""
+        naglowek_ekranu = ""
+        
+        is_morning = time(4, 30) <= teraz < time(7, 0)
+        is_pre_noon = time(7, 0) <= teraz < time(11, 0)
+        is_noon = time(11, 0) <= teraz < time(14, 0)
+        is_afternoon = time(14, 0) <= teraz < time(19, 0)
+        is_evening = time(19, 0) <= teraz < time(23, 0)
+        is_night = teraz >= time(23, 0) or teraz < time(4, 30)
+
+        if TRYB_ANALIZY:
+            st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+
 
 
     audio_bytes = audio_nagrane.read()
