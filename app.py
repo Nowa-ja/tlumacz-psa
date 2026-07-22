@@ -21,6 +21,24 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
+# --- PROSTA FUNKCJA DO ANALIZY HZ (PROSTA I STABILNA DLA PSA) ---
+def analizuj_czestotliwosc(audio_bytes):
+    if not TRYB_ANALIZY:
+        return 600.0
+    try:
+        sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
+        if len(data.shape) > 1:
+            data = data[:, 0]
+        fft_spectrum = np.fft.rfft(data)
+        freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
+        szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
+        wykryte = freq[szczytowa_indeks]
+        if wykryte < 50 or wykryte > 3000:
+            return 600.0
+        return wykryte
+    except:
+        return 600.0
+
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 
 GRUPA_TEKSTY_PORANNE = [
@@ -75,6 +93,7 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
+
 TEKSTY_WIECZORNE = [
     "Jeszcze tylko kupkę, siku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
@@ -83,7 +102,7 @@ TEKSTY_WIECZORNE = [
     "Wyczułem fajny towar w okolicy - może jest singlem?",
     "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.",
     "Chodź pokażę ci straszną babę.",
-    "A wiesz, że sąsiadka ma coś na sumieniu?",
+    "A wiesz, że sąsiadka ma souvenir na sumieniu?",
     "Cisza nocna jest od dwudziestej czwartej?"
 ]
 
@@ -157,7 +176,6 @@ if audio_nagrane is not None:
 
     # --- TWARDE I BEZBŁĘDNE SPRAWDZENIE PTASZKA OCHRONY ---
     if jestem_czlowiekiem:
-        # Losujemy jeden z Twoich żartów na człowieka i twardo blokujemy psa
         zwierze = random.choice([FONETYCZNY_BARAN, FONETYCZNA_KROWA])
         if zwierze == FONETYCZNY_BARAN:
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
@@ -216,6 +234,7 @@ if audio_nagrane is not None:
     with col2:
         st.write("💬 **Tłumaczenie tekstowe:**")
         st.success(f"{naglowek_ekranu}: {final_tekst}")
+
 
 # ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
 st.write("---")
