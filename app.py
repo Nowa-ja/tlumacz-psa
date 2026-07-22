@@ -236,12 +236,9 @@ if audio_nagrane is not None:
     wykryte_hz = analizuj_czestotliwosc(audio_bytes)
     
     # TWARDY LOCKOUT: Jeśli ptaszek "Jestem Człowiekiem" jest zaznaczony, 
-    # zmuszamy algorytm do wejścia w strefę 150 Hz (Tryb Barana/Krowy)
+    # zmuszamy algorytm do wejścia w strefę 150 Hz i NIE pozwalamy na nadpisanie!
     if jestem_czlowiekiem:
         wykryte_hz = 150.0
-
-    audio_bytes = audio_nagrane.read()
-    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
     
     teraz = datetime.now().time()
     final_tekst = ""
@@ -270,7 +267,7 @@ if audio_nagrane is not None:
             
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
 
-    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEZ 255 Hz LUB CZASOWE) ---
+    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 255 Hz LUB CZASOWE) ---
     else:
         if TRYB_ANALIZY and 255 < wykryte_hz < 450:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
@@ -303,6 +300,7 @@ if audio_nagrane is not None:
             elif is_night:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Nocny Alarm]"
+
 
     # Generowanie mowy lektora
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
