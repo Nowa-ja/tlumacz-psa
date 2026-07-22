@@ -26,7 +26,7 @@ def analizuj_czestotliwosc(audio_bytes):
         return 600.0
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
-               if len(data.shape) > 1:
+        if len(data.shape) > 1:
             data = data[:, 0]
             
         # --- FILTR CZASU (ZMODYFIKOWANA BLOKADA LUDZKIEGO "HAUHAUHAU") ---
@@ -43,7 +43,6 @@ def analizuj_czestotliwosc(audio_bytes):
                 return 150.0
 
         # Standardowa analiza FFT dla krótkich dźwięków (prawdziwych szczeknięć)
-
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
         amplitudy = np.abs(fft_spectrum)
@@ -61,6 +60,7 @@ def analizuj_czestotliwosc(audio_bytes):
         return freq[szczytowa_indeks]
     except:
         return 600.0
+        
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 
