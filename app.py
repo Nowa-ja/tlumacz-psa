@@ -120,7 +120,7 @@ TEKSTY_WIECZORNE = [
     "Jeszcze tylko kupkę, siku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
     "Mogę zesrać się tutaj - nie musimy wychodzić!",
-    "Fundamentalne pytanie brzmi - srać czy srać?",
+    "Fundamentalne pytanie brzmi - srać czy nie srać?",
     "Wyczułem fajny towar w okolicy - może jest singlem?",
     "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.",
     "Chodź pokażę ci straszną babę.",
