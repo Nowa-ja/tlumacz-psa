@@ -212,33 +212,33 @@ if audio_nagrane is not None:
     is_evening = time(19, 0) <= teraz < time(23, 0)
     is_night = teraz >= time(23, 0) or teraz < time(4, 30)
 
-    # --- REAKCJA NA LOCKOUT UŻYTKOWNIKA VIA ST.PILLS ---
-    if wybor_obiektu == "👨 Ja osobiście (Test systemu)":
-        # Wymuszamy losowy żart o krowie lub baranie, ignorując mikrofon
-        zwierze = random.choice([FONETYCZNY_BARAN, FONETYCZNA_KROWA])
-        if zwierze == FONETYCZNY_BARAN:
-            naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
+        # --- NOWY, BEZWZGLĘDNY I AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU ---
+    # Podnosimy próg blokady ludzkiego udawania aż do 600 Hz!
+    if TRYB_ANALIZY and (85 <= wykryte_hz <= 600):
+        if wykryte_hz < 180:
+            zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
+            naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
-            naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
+            zwierze = FONETYCZNA_KROWA
             komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
+            naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
 
+    elif wykryte_hz < 85 or wykryte_hz > 3000:
+        final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
+        naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
+
+    # --- TRYB PSA (URUCHAMIANY TYLKO DLA PRAWDZIWYCH PSIYCH DŹWIĘKÓW > 600 Hz) ---
     else:
-        # Prawdziwy pies: standardowa klasyfikacja Hz
-        st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
-        
-        if 85 <= wykryte_hz < 450:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
-        elif 450 <= wykryte_hz < 800:
+        if TRYB_ANALIZY and 600 < wykryte_hz < 900:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-        elif 800 <= wykryte_hz < 1200:
+        elif TRYB_ANALIZY and 900 <= wykryte_hz < 1400:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-        elif wykryte_hz >= 1200:
+        elif TRYB_ANALIZY and wykryte_hz >= 1400:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
         else:
@@ -260,6 +260,7 @@ if audio_nagrane is not None:
             elif is_night:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Nocny Alarm]"
+
 
     # Generowanie mowy lektora gTTS
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
