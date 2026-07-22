@@ -60,9 +60,9 @@ def analizuj_czestotliwosc(audio_bytes):
         szczytowy_indeks = np.argmax(amplitudy_przefiltrowane)
         wykryte_hz = freq[szczytowy_indeks]
 
-        # --- LOGIKA ODSEJOWANIA PODRÓBEK ---
+               # --- LOGIKA ODSEJOWANIA PODRÓBEK ---
         # Jeśli dźwięk trwa za długo lub jest zbyt płynny, melodyjny (niski ZCR) -> to człowiek
-        if czas_trwania_sekundy > 0.65 or zcr_value < 0.05:
+        if czas_trwania_sekundy > 0.35 or zcr_value < 0.12:
             return wykryte_hz, "czlowiek"
         
         # Ciągłe, basowe buczenie lub hałas auta
