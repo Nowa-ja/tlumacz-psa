@@ -183,14 +183,14 @@ if audio_nagrane is not None:
 
     st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 600 Hz) ---
-    if 85 <= wykryte_hz <= 600:
-        if wykryte_hz < 180:
+       # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 1050 Hz) ---
+    if 85 <= wykryte_hz <= 1050:
+        if wykryte_hz < 220:
             zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
-            zwierze = FONETYCNZA_KROWA
+            zwierze = FONETYCZNA_KROWA
             komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
@@ -200,9 +200,10 @@ if audio_nagrane is not None:
         final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
         naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
 
-    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 600 Hz) ---
+    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 1050 Hz) ---
     else:
-        if 600 < wykryte_hz < 900:
+        if 1050 < wykryte_hz < 1350:
+
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
         elif 900 <= wykryte_hz < 1400:
