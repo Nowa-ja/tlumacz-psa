@@ -183,8 +183,8 @@ if audio_nagrane is not None:
 
     st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-       # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 1050 Hz) ---
-    if 85 <= wykryte_hz <= 1050:
+          # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 450 Hz) ---
+    if 85 <= wykryte_hz <= 450:
         if wykryte_hz < 220:
             zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
@@ -200,16 +200,15 @@ if audio_nagrane is not None:
         final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
         naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
 
-    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 1050 Hz) ---
+    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 450 Hz) ---
     else:
-        if 1050 < wykryte_hz < 1350:
-
+        if 450 < wykryte_hz < 800:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-        elif 900 <= wykryte_hz < 1400:
+        elif 800 <= wykryte_hz < 1300:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-        elif wykryte_hz >= 1400:
+        elif wykryte_hz >= 1300:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
         else:
@@ -278,3 +277,4 @@ if st.button("📝 Regulamin strony"):
     
     Życzę wszystkim wiele radości z użytkowania tłumacza!
     """)
+
