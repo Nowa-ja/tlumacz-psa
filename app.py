@@ -229,9 +229,27 @@ st.markdown(f"""
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
 
+# --- GRAFICZNA WERYFIKACJA GATUNKU ---
+st.markdown("### 🎯 Kogo teraz nagrywasz?")
+tryb_nagrywania = st.radio(
+    "Wybierz obiekt nagrania:",
+    ["🐶 Prawdziwego Psa", "👨 Siebie (chcę sprawdzić system)"],
+    label_visibility="collapsed"
+)
+
+st.write("")
 audio_nagrane = st.audio_input("Nagraj")
 
 if audio_nagrane is not None:
+    audio_bytes = audio_nagrane.read()
+    
+    # Pobieramy częstotliwość Hz
+    wykryte_hz, status_dzwieku = analizuj_audio_ai(audio_bytes)
+    
+    # Nadpisujemy status, jeśli użytkownik przyznał się, że nagrywa siebie
+    if tryb_nagrywania == "👨 Siebie (chcę sprawdzić system)":
+        status_dzwieku = "czlowiek"
+
     audio_bytes = audio_nagrane.read()
     
     # Przesyłamy bezpośrednio bajty z widgetu Streamlit do analizy odcisku dźwięku librosa
