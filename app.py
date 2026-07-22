@@ -25,20 +25,54 @@ if "ostatnie_pokazywane_zdanie" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-# --- ANALIZATOR AUDIO (FFT) ---
+# --- INTELIGENTNY DETEKTOR PSIEGO GŁOSU (NOWY FILTR) ---
 def analizuj_czestotliwosc(audio_bytes):
     if not TRYB_ANALIZY:
-        return 600.0
+        return 600.0, "pies"
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
             data = data[:, 0]
+            
+        # 1. Analiza głośności i energii dźwięku
+        amplituda_max = np.max(np.abs(data))
+        if amplituda_max < 500:  
+            return 600.0, "szum"
+            
+        # 2. Analiza długości impulsu (szczeknięcie psa jest krótkie)
+        progowana_energia = np.abs(data) > (amplituda_max * 0.3)
+        czas_trwania_sekundy = np.sum(progowana_energia) / sample_rate
+        
+        # 3. Analiza ZCR (Zero Crossing Rate - chropowatość dźwięku)
+        zcr_value = np.sum(np.abs(np.diff(np.sign(data)))) / (2 * len(data))
+
+        # 4. Obliczanie FFT (częstotliwości)
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
-        szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
-        return freq[szczytowa_indeks]
+        amplitudy = np.abs(fft_spectrum)
+        
+        # Zawężamy pasmo szukania szczytu do granic realnych dla psa/człowieka
+        maska_pasma = (freq >= 85) & (freq <= 3000)
+        if not np.any(maska_pasma):
+            return 600.0, "szum"
+            
+        amplitudy_przefiltrowane = np.where(maska_pasma, amplitudy, 0)
+        szczytowy_indeks = np.argmax(amplitudy_przefiltrowane)
+        wykryte_hz = freq[szczytowy_indeks]
+
+        # --- LOGIKA ODSEJOWANIA PODRÓBEK ---
+        # Jeśli dźwięk trwa za długo lub jest zbyt płynny, melodyjny (niski ZCR) -> to człowiek
+        if czas_trwania_sekundy > 0.65 or zcr_value < 0.05:
+            return wykryte_hz, "czlowiek"
+        
+        # Ciągłe, basowe buczenie lub hałas auta
+        if wykryte_hz < 130 and czas_trwania_sekundy > 0.5:
+            return wykryte_hz, "szum"
+
+        # Dźwięk dynamiczny, krótki i szorstki -> identyfikujemy jako psa
+        return wykryte_hz, "pies"
     except:
-        return 600.0
+        return 600.0, "pies"
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 
@@ -85,7 +119,6 @@ GRUPA_TEKSTOW_POLUDNIOWYCH = [
     "Rzucaj tę kość, tylko tym razem dobrze!",
     "Pobiegamy razem?"
 ]
-
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Tak jak się umawialiśmy - jestem tutaj.",
     "O której to wracasz?",
@@ -94,6 +127,7 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
+
 TEKSTY_WIECZORNE = [
     "Jeszcze tylko kupkę, siku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
@@ -166,8 +200,9 @@ TEKSTY_DUZY_OWCZAREK_ZABAWA = [
     "Dawaj parówkę albo sam sobie wezmę kawał mięcha!",
     "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?",
     "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
-    "A teraz rzuć swojską!"
+    "A nytka rzuć swojską!"
 ]
+
 TEKSTY_SREDNI_BEAGLE = [
     "Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.",
     "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!",
@@ -241,13 +276,16 @@ st.write("---")
 audio_nagrane = st.audio_input("Nagraj")
 if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
-    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
+    
+    # Rozpakowujemy częstotliwość oraz status dźwięku
+    wykryte_hz, status_dzwieku = analizuj_czestotliwosc(audio_bytes)
     
     teraz = datetime.now().time()
     wylosowany = ""
     naglowek_ekranu = ""
     uzyj_dodatkowego = True
     uzyj_neutralnego = False
+    wymus_komunikat = False
     
     is_morning = time(4, 30) <= teraz < time(7, 0)
     is_pre_noon = time(7, 0) <= teraz < time(11, 0)
@@ -259,69 +297,97 @@ if audio_nagrane is not None:
     if TRYB_ANALIZY:
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
-        st.session_state.licznik_ludzki += 1
+    # --- NOWA REAKCJA NA LOCKOUT I FILTROWANIE ---
+    if status_dzwieku == "szum":
+        wylosowany = "Słyszę tylko szum tła, odgłosy ulicy lub przejeżdżający samochód. Poczekaj, aż zrobi się ciszej i pozwól zaszczekać psu!"
+        naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
         uzyj_dodatkowego = False
-        if wykryte_hz < 165:
-            zwierze = FONETYCZNY_BARAN
-            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
-            naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
-        else:
-            zwierze = FONETYCZNA_KROWA
-            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
-            naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
-            
-        if st.session_state.licznik_ludzki == 1:
-            wylosowany = f"{zwierze} Nie mogę przetłumaczyć tego, bo za szybko mówisz."
-        elif st.session_state.licznik_ludzki == 2:
-            wylosowany = f"{zwierze} Nie mogę przetłumaczyć - Mów wolno i wyraźnie. {komentarz}"
-        else:
-            wylosowany = f"{zwierze} {zwierze} A teraz powiedz to drukowanymi, patrząc w lustro! Człowieku, aplikacja służy do tłumaczenia zwierzaków, więc weź na wstrzymanie!"
-            st.session_state.licznik_ludzki = 0
-    else:
-        st.session_state.licznik_ludzki = 0
-        if TRYB_ANALIZY and wykryte_hz < 200:
-            wylosowany = pobierz_tekst_kontekstowy(TEKSTY_GIGANT_STRES, "gigant")
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Gigant]"
-            uzyj_neutralnego = True 
-        elif TRYB_ANALIZY and 200 <= wykryte_hz < 450:
-            wylosowany = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA, "duzy")
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
-        elif TRYB_ANALIZY and wykryte_hz > 1200:
-            wylosowany = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK, "miniatura")
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
-        else:
-            if is_morning:
-                wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE, "rano")
-                naglowek_ekranu = "[Poranny Bieguniem]"
-                uzyj_dodatkowego = False
-                if st.session_state.get("wyczerpana_rano", False): uzyj_neutralnego = True
-            elif is_pre_noon:
-                wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH, "przedpoludnie")
-                naglowek_ekranu = "[Przedpołudniowy Samotnik]"
-                if st.session_state.get("wyczerpana_przedpoludnie", False): uzyj_neutralnego = True
-            elif is_noon:
-                if st.session_state.ostatnie_pokazywane_zdanie == "Ty mi rzucaj smakołyk, a ja będę łapać.":
-                    wylosowany = "Chyba, że wolisz żebym ciebie podgryzał."
-                else:
-                    wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH, "poludnie")
-                naglowek_ekranu = "[Południowa Rozgrywka]"
-                if st.session_state.get("wyczerpana_poludnie", False): uzyj_neutralnego = True
-            elif is_afternoon:
-                wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH, "popoludnie")
-                naglowek_ekranu = "[Popołudniowa Radość]"
-                if st.session_state.get("wyczerpana_popoludnie", False): uzyj_neutralnego = True
-            elif is_evening:
-                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE, "wieczor")
-                naglowek_ekranu = "[Wieczorny Relaks]"
-                if st.session_state.get("wyczerpana_wieczor", False): uzyj_neutralnego = True
-            elif is_night:
-                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_NOCNE, "noc")
-                naglowek_ekranu = "[Nocny Alarm]"
-                uzyj_dodatkowego = False
+        uzyj_neutralnego = False
+        wymus_komunikat = True
+        
+    elif status_dzwieku == "czlowiek":
+        wylosowany = random.choice([
+            "Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa słyszę barana lub osła! 🐑",
+            "Marna podróbka! Twój pies właśnie schował głowę pod poduszkę ze wstydu za Twoje szczekanie.",
+            "Wykryto człowieka próbującego mówić po psiemu. Twój akcent jest fatalny, spróbuj jeszcze raz!",
+            "Słyszę osła! Aplikacja służy do tłumaczenia zwierzaków, więc weź na wstrzymanie!"
+        ])
+        naglowek_ekranu = "[❌ Wykryto Podrabianie - Tryb Człowieka]"
+        uzyj_dodatkowego = False
+        uzyj_neutralnego = False
+        wymus_komunikat = True
+
+    # --- GLÓWNA LOGIKA DLA PSA (URUCHAMIANA TYLKO GDY WYKRYTO PSA) ---
+    if not wymus_komunikat:
+        if TRYB_ANALIZY and (85 <= wykryte_hz <= 255):
+            st.session_state.licznik_ludzki += 1
+            uzyj_dodatkowego = False
+            if wykryte_hz < 165:
+                zwierze = FONETYCZNY_BARAN
+                komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
+                naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
+            else:
+                zwierze = FONETYCZNA_KROWA
+                komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
+                naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
                 
-            if (is_pre_noon or is_noon or is_afternoon) and random.random() < 0.3:
-                wylosowany = pobierz_tekst_kontekstowy(ZDANIA_ROZKAZUJACE, "rozkazy")
+            if st.session_state.licznik_ludzki == 1:
+                wylosowany = f"{zwierze} Nie mogę przetłumaczyć tego, bo za szybko mówisz."
+            elif st.session_state.licznik_ludzki == 2:
+                wylosowany = f"{zwierze} Nie mogę przetłumaczyć - Mów wolno i wyraźnie. {komentarz}"
+            else:
+                wylosowany = f"{zwierze} {zwierze} A teraz powiedz to drukowanymi, patrząc w lustro! Człowieku, aplikacja służy do tłumaczenia zwierzaków, więc weź na wstrzymanie!"
+                st.session_state.licznik_ludzki = 0
+        else:
+            st.session_state.licznik_ludzki = 0
+            if TRYB_ANALIZY and wykryte_hz < 200:
+                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_GIGANT_STRES, "gigant")
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Gigant]"
+                uzyj_neutralnego = True 
+            elif TRYB_ANALIZY and 200 <= wykryte_hz < 450:
+                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA, "duzy")
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Owczarek w akcji]"
+            elif TRYB_ANALIZY and 450 <= wykryte_hz < 800:  # DODANE PASMO DLA ŚREDNICH PSÓW
+                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE, "sredni")
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
+            elif TRYB_ANALIZY and 800 <= wykryte_hz < 1200: # DODANE PASMO DLA MAŁYCH PSÓW
+                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_MALUCH, "maluch")
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
+            elif TRYB_ANALIZY and wykryte_hz >= 1200:
+                wylosowany = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK, "miniatura")
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+            else:
+                if is_morning:
+                    wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE, "rano")
+                    naglowek_ekranu = "[Poranny Bieguniem]"
+                    uzyj_dodatkowego = False
+                    if st.session_state.get("wyczerpana_rano", False): uzyj_neutralnego = True
+                elif is_pre_noon:
+                    wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH, "przedpoludnie")
+                    naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+                    if st.session_state.get("wyczerpana_przedpoludnie", False): uzyj_neutralnego = True
+                elif is_noon:
+                    if st.session_state.ostatnie_pokazywane_zdanie == "Ty mi rzucaj smakołyk, a ja będę łapać.":
+                        wylosowany = "Chyba, że wolisz żebym ciebie podgryzał."
+                    else:
+                        wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH, "poludnie")
+                    naglowek_ekranu = "[Południowa Rozgrywka]"
+                    if st.session_state.get("wyczerpana_poludnie", False): uzyj_neutralnego = True
+                elif is_afternoon:
+                    wylosowany = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH, "popoludnie")
+                    naglowek_ekranu = "[Popołudniowa Radość]"
+                    if st.session_state.get("wyczerpana_popoludnie", False): uzyj_neutralnego = True
+                elif is_evening:
+                    wylosowany = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE, "wieczor")
+                    naglowek_ekranu = "[Wieczorny Relaks]"
+                    if st.session_state.get("wyczerpana_wieczor", False): uzyj_neutralnego = True
+                elif is_night:
+                    wylosowany = pobierz_tekst_kontekstowy(TEKSTY_NOCNE, "noc")
+                    naglowek_ekranu = "[Nocny Alarm]"
+                    uzyj_dodatkowego = False
+                    
+                if (is_pre_noon or is_noon or is_afternoon) and random.random() < 0.3:
+                    wylosowany = pobierz_tekst_kontekstowy(ZDANIA_ROZKAZUJACE, "rozkazy")
 
     st.session_state.ostatnie_pokazywane_zdanie = wylosowany
 
@@ -331,12 +397,10 @@ if audio_nagrane is not None:
 
     final_tekst = wylosowany
     
-    if uzyj_dodatkowego and not (TRYB_ANALIZY and 85 <= wykryte_hz <= 255):
-        if is_morning: final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
-        elif is_afternoon: final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
-        else: final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
+    if uzyj_dodatkowego and not wymus_komunikat and not (TRYB_ANALIZY and 85 <= wykryte_hz <= 255):
+        final_tekst += f" {random.choice(DODATKOWE_ZDANIA)}"
             
-    if uzyj_neutralnego and not is_evening and not is_night:
+    if uzyj_neutralnego and not wymus_komunikat and not is_evening and not is_night:
         pula_neutralna = GRUPA_TEKSTOW_NEUTRALNYCH.copy()
         if not is_morning: pula_neutralna = [t for t in pula_neutralna if "dwa razy" not in t.lower()]
         if is_morning: pula_neutralna = [t for t in pula_neutralna if "miska jest pusta" not in t.lower()]
@@ -382,16 +446,13 @@ with col_foot2:
     if st.button("📝 Regulamin strony"):
         st.info("""
         **Regulamin i informacje o serwisie hauhau.online**
-        
-        Drogi użytkowniku.
-        Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
-        
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
-        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
-        
-        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
-        
-        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia przysięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
-        
-        Życzę wszystkim wiele radości z użytkowania tłumacza!
-        """)
+
+Drogi użytkowniku. Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem.
+
+Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia.
+Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa.
+
+W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy.
+
+Życzę wszystkim wiele radości z użytkowania tłumacza!
