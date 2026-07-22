@@ -26,22 +26,24 @@ def analizuj_czestotliwosc(audio_bytes):
         return 600.0
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
-        if len(data.shape) > 1:
+               if len(data.shape) > 1:
             data = data[:, 0]
             
-        # --- FILTR CZASU (BLOKADA LUDZKIEGO "HAUHAUHAU") ---
-        # Liczymy, jak długo dźwięk przekracza próg głośności.
-        # Prawdziwe szczeknięcie psa jest bardzo krótkie i nagłe.
+        # --- FILTR CZASU (ZMODYFIKOWANA BLOKADA LUDZKIEGO "HAUHAUHAU") ---
+        # Mierzymy stosunek energii impulsu do całego czasu nagrania.
         max_amp = np.max(np.abs(data))
         if max_amp > 0:
-            glosne_probki = np.sum(np.abs(data) > (max_amp * 0.25))
+            glosne_probki = np.sum(np.abs(data) > (max_amp * 0.15))
             czas_trwania = glosne_probki / sample_rate
-            # Jeśli dźwięk ciągnie się bez przerwy dłużej niż 0.45 sekundy,
-            # twardo zrzucamy częstotliwość do strefy ludzkiej (np. 150 Hz)
-            if czas_trwania > 0.45:
+            Dlugosc_calego_pliku = len(data) / sample_rate
+            
+            # Jeśli dźwięk trwa dłużej niż 0.25 sekundy LUB zajmuje zbyt dużą część nagrania,
+            # to na 100% jest to ludzkie, przeciągane szczekanie lub wycie.
+            if czas_trwania > 0.25 or (czas_trwania / Dlugosc_calego_pliku > 0.10):
                 return 150.0
 
         # Standardowa analiza FFT dla krótkich dźwięków (prawdziwych szczeknięć)
+
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
         amplitudy = np.abs(fft_spectrum)
