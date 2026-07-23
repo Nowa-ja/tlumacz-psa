@@ -32,18 +32,24 @@ def analizuj_audio(audio_bytes):
         szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
         wykryte = freq[szczytowa_indeks]
         
-        # SPECJALNA DETEKCJA WARCZENIA:
-        # Warczenie to ciągły, niski ton (60-140 Hz). 
-        # Sprawdzamy energię w niskim paśmie w stosunku do reszty sygnału.
-        niskie_pasmo = (freq >= 60) & (freq <= 140)
-        energia_warczenia = np.sum(np.abs(fft_spectrum[niskie_pasmo]))
+        # NOWY, ROZSZERZONY DETEKTOR WARCZENIA (Uwzględnia ostre warczenie przy 710 Hz)
+        czy_warczenie = False
         calkowita_energia = np.sum(np.abs(fft_spectrum))
         
-        czy_warczenie = False
         if calkowita_energia > 0:
-            stosunek_energii = energia_warczenia / calkowita_energia
-            # Jeśli ponad 35% energii dźwięku to niski pomruk, mamy warczenie
-            if 60 <= wykryte <= 140 and stosunek_energii > 0.35:
+            # 1. Sprawdzamy głębokie, basowe warczenie (60-140 Hz)
+            niskie_pasmo = (freq >= 60) & (freq <= 140)
+            energia_basu = np.sum(np.abs(fft_spectrum[niskie_pasmo]))
+            
+            # 2. Sprawdzamy ostre, wibrujące warczenie w wyższych rejestrach (450-950 Hz)
+            ostre_pasmo = (freq >= 450) & (freq <= 950)
+            energia_ostra = np.sum(np.abs(fft_spectrum[ostre_pasmo]))
+            
+            # Warunek aktywacji alarmu
+            if 60 <= wykryte <= 140 and (energia_basu / calkowita_energia) > 0.35:
+                czy_warczenie = True
+            elif 450 <= wykryte <= 950 and (energia_ostra / calkowita_energia) > 0.30:
+                # Jeśli dominujący ton leży w paśmie ostrym i ma dużą koncentrację energii - to warczenie!
                 czy_warczenie = True
         
         if wykryte < 50 or wykryte > 3000:
