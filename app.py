@@ -86,7 +86,6 @@ GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = [
     "Nie idź do pracy, pokopmy dołki.",
     "Weź mnie ze sobą, będę pilnować pieniędzy."
 ]
-
 TEKSTY_DZIENNE_ZABAWA = [
     "Interesują mnie tylko konkrety - gdzie są parówki?!",
     "Konkrety to smakołyki.",
@@ -115,6 +114,7 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
+
 TEKSTY_WIECZORNE = [
     "Jeszcze tylko kupkę, śiku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
@@ -182,12 +182,27 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.ostatni_tekst = wybrany
     return wybrany
 
-# --- STYLE CSS ---
+# --- STYLE CSS (Z DODANYM PULSUJĄCYM CZERWONYM ALARMEM DLA WARCZENIA) ---
 st.markdown("""
     <style>
     .stApp { background-color: #f4f7f5; }
     h1 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
     .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #e8f5e9; }
+    
+    /* Animacja migającego, czerwonego tła dla niebezpieczeństwa */
+    @keyframes pulse-red {
+        0% { background-color: rgba(211, 47, 47, 0.1); }
+        50% { background-color: rgba(211, 47, 47, 0.3); }
+        100% { background-color: rgba(211, 47, 47, 0.1); }
+    }
+    .red-alert-box {
+        animation: pulse-red 2s infinite;
+        border: 3px solid #d32f2f !important;
+        border-radius: 10px;
+        padding: 15px;
+        color: #b71c1c !important;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -197,11 +212,12 @@ st.write("---")
 audio_nagrane = st.audio_input("Nagraj dźwięk:")
 if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
-    wykryte_hz = analizuj_czestotliwosc(audio_bytes)
+    wykryte_hz, czy_warczenie = analizuj_audio(audio_bytes)
     
     teraz = datetime.now().time()
     final_tekst = ""
     naglowek_ekranu = ""
+    tryb_alarmu = False
     
     # Warunki czasowe
     is_morning = time(4, 30) <= teraz < time(7, 0)
@@ -213,31 +229,40 @@ if audio_nagrane is not None:
 
     st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-    # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 450 Hz) ---
-    if 85 <= wykryte_hz <= 450:
+    # ==================== LOGIKA FILTROWANIA DŹWIĘKU ====================
+
+    # PRIORYTET 1: DETEKCJA EMOCJI - GROŹNE WARCZENIE (Czerwony Alarm)
+    if czy_warczenie:
+        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
+        naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
+        tryb_alarmu = True
+
+    # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 450 Hz) - działa tylko gdy nie ma warczenia
+    elif 85 <= wykryte_hz <= 450:
         if wykryte_hz < 220:
             zwierze = FONETYCZNY_BARAN
-            komentarz = "Wykryto dźwięk barana! Posłuchaj kumpla z pastwiska, nagraj psa!"
+            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
             zwierze = FONETYCHNA_KROWA
-            komentarz = "Wykryto dźwięki z zagrody! Daj psu dojść do głosu!"
+            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
 
+    # PRIORYTET 3: ZAKŁÓCENIA OTOCZENIA
     elif wykryte_hz < 85 or wykryte_hz > 3000:
         final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
         naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
 
-    # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 450 Hz) ---
+    # PRIORYTET 4: STANDARDOWY TRYB PSA (Częstotliwości powyżej 450 Hz)
     else:
-        # NOWOŚĆ: Skrajnie niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
+        # Niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
         if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
         
-        # 1. ŚCISŁE PORY DNIA (Uruchamiają się w określonych godzinach)
+        # 1. ŚCISŁE PORY DNIA
         elif is_morning:
             final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
             naglowek_ekranu = "[Poranny Bieguniem]"
@@ -257,7 +282,7 @@ if audio_nagrane is not None:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
             naglowek_ekranu = "[Nocny Alarm]"
             
-        # 2. PODZIAŁ NA RASY (Działa jako zapasowy filtr)
+        # 2. PODZIAŁ NA RASY (Zapasowy filtr)
         else:
             if 550 <= wykryte_hz < 800:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
@@ -269,21 +294,27 @@ if audio_nagrane is not None:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                 naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
 
-    # Generowanie mowy lektora
+    # ==================== GENERATOR LEKTORA ORAZ MODYFIKACJA AUDIO ====================
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
-    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
+    
+    # Dla warczenia lektor mówi wolniej (slow=True) dla dodania grozy, dla reszty normalnie
+    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=tryb_alarmu)
     fp_raw = io.BytesIO()
     tts.write_to_fp(fp_raw)
     fp_raw.seek(0)
     
     try:
         sample_rate, data = wavfile.read(fp_raw)
-        skurczony_rozmiar = int(len(data) / 1.15)
-        indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
-        przyspieszone_data = data[indeksy]
-        fp = io.BytesIO()
-        wavfile.write(fp, sample_rate, przyspieszone_data)
-        fp.seek(0)
+        # Warczenia NIE przyspieszamy w NumPy, aby zachować głęboki, groźny głos lektora
+        if tryb_alarmu:
+            fp = fp_raw
+        else:
+            skurczony_rozmiar = int(len(data) / 1.15)
+            indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
+            przyspieszone_data = data[indeksy]
+            fp = io.BytesIO()
+            wavfile.write(fp, sample_rate, przyspieszone_data)
+            fp.seek(0)
     except:
         fp = fp_raw
     
@@ -295,7 +326,11 @@ if audio_nagrane is not None:
         st.audio(fp, format="audio/wav", autoplay=True)
     with col2:
         st.write("💬 **Tłumaczenie tekstowe:**")
-        st.success(f"{naglowek_ekranu}: {final_tekst}")
+        if tryb_alarmu:
+            # Specjalna, pulsująca na czerwono ramka z CSS
+            st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
+        else:
+            st.success(f"{naglowek_ekranu}: {final_tekst}")
 
 # ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
 st.write("---")
