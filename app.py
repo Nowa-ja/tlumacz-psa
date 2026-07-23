@@ -61,12 +61,15 @@ def analizuj_audio(audio_bytes):
 
 # ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
 TEKSTY_WARCZENIE_ALARM = [
-    "Zatrzymaj się. Natychmiast. Przekroczyłeś moją granicę i jeśli zrobisz jeszcze jeden krok, to źle się skończy.",
-    "Nie podchodź. To nie są żarty, ani zabawa. Moja cierpliwość właśnie się skończyła.",
-    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej gotowości do ataku.",
+    "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
+    "Nie podchodź. To nie są żarty, ani zabawa.",
+    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej godowości do ataku.",
     "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.",
-    "Koniec negocjacji. Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie."
+    "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.",
+    "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.",
+    "Ani kroku dalej. To nie jest żart. Koniec zabawy."
 ]
+
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 GRUPA_TEKSTY_PORANNE = [
