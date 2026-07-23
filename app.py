@@ -15,23 +15,52 @@ if "ostatni_tekst" not in st.session_state:
 if "wykorzystane_teksty" not in st.session_state:
     st.session_state.wykorzystane_teksty = set()
 
-# --- STABILNA ANALIZA HZ DLA AUTOMATU ---
-def analizuj_czestotliwosc(audio_bytes):
+# --- STABILNA ANALIZA HZ ORAZ DETEKCJA WARCZENIA ---
+def analizuj_audio(audio_bytes):
+    """Zwraca krotkę: (wykryte_hz, czy_warczenie)"""
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
-            data = data.mean(axis=1) # Średnia z kanałów dla stabilności
+            data = data.mean(axis=1)
         if len(data) == 0:
-            return 600.0
+            return 600.0, False
+            
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
+        
+        # Znajdowanie dominującej częstotliwości
         szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
         wykryte = freq[szczytowa_indeks]
+        
+        # SPECJALNA DETEKCJA WARCZENIA:
+        # Warczenie to ciągły, niski ton (60-140 Hz). 
+        # Sprawdzamy energię w niskim paśmie w stosunku do reszty sygnału.
+        niskie_pasmo = (freq >= 60) & (freq <= 140)
+        energia_warczenia = np.sum(np.abs(fft_spectrum[niskie_pasmo]))
+        calkowita_energia = np.sum(np.abs(fft_spectrum))
+        
+        czy_warczenie = False
+        if calkowita_energia > 0:
+            stosunek_energii = energia_warczenia / calkowita_energia
+            # Jeśli ponad 35% energii dźwięku to niski pomruk, mamy warczenie
+            if 60 <= wykryte <= 140 and stosunek_energii > 0.35:
+                czy_warczenie = True
+        
         if wykryte < 50 or wykryte > 3000:
-            return 600.0
-        return float(wykryte)
+            return 600.0, False
+            
+        return float(wykryte), czy_warczenie
     except:
-        return 600.0
+        return 600.0, False
+
+# ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
+TEKSTY_WARCZENIE_ALARM = [
+    "Zatrzymaj się. Natychmiast. Przekroczyłeś moją granicę i jeśli zrobisz jeszcze jeden krok, to źle się skończy.",
+    "Nie podchodź. To nie są żarty, ani zabawa. Moja cierpliwość właśnie się skończyła.",
+    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej gotowości do ataku.",
+    "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.",
+    "Koniec negocjacji. Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie."
+]
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 GRUPA_TEKSTY_PORANNE = [
@@ -188,11 +217,11 @@ if audio_nagrane is not None:
     if 85 <= wykryte_hz <= 450:
         if wykryte_hz < 220:
             zwierze = FONETYCZNY_BARAN
-            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
+            komentarz = "Wykryto dźwięk barana! Posłuchaj kumpla z pastwiska, nagraj psa!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
             zwierze = FONETYCHNA_KROWA
-            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
+            komentarz = "Wykryto dźwięki z zagrody! Daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
