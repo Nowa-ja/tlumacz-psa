@@ -303,27 +303,28 @@ if audio_nagrane is not None:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                 naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
 
-    # ==================== GENERATOR LEKTORA ORAZ MODYFIKACJA AUDIO ====================
+        # ==================== GENERATOR LEKTORA ORAZ MODYFIKACJA AUDIO ====================
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
     
-    # Dla warczenia lektor mówi wolniej (slow=True) dla dodania grozy, dla reszty normalnie
-    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=tryb_alarmu)
+    # Tworzenie głosu lektora (zawsze standardowa prędkość bazowa gTTS)
+    tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
     fp_raw = io.BytesIO()
     tts.write_to_fp(fp_raw)
     fp_raw.seek(0)
     
     try:
         sample_rate, data = wavfile.read(fp_raw)
-        # Warczenia NIE przyspieszamy w NumPy, aby zachować głęboki, groźny głos lektora
-        if tryb_alarmu:
-            fp = fp_raw
-        else:
-            skurczony_rozmiar = int(len(data) / 1.15)
-            indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
-            przyspieszone_data = data[indeksy]
-            fp = io.BytesIO()
-            wavfile.write(fp, sample_rate, przyspieszone_data)
-            fp.seek(0)
+        
+        # Ustalamy mnożnik prędkości: 1.30 dla alarmu (szybciej o 30%), 1.15 dla reszty tekstów
+        mnoznik_predkosci = 1.30 if tryb_alarmu else 1.15
+        
+        skurczony_rozmiar = int(len(data) / mnoznik_predkosci)
+        indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
+        przyspieszone_data = data[indeksy]
+        
+        fp = io.BytesIO()
+        wavfile.write(fp, sample_rate, przyspieszone_data)
+        fp.seek(0)
     except:
         fp = fp_raw
     
@@ -340,6 +341,7 @@ if audio_nagrane is not None:
             st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
         else:
             st.success(f"{naglowek_ekranu}: {final_tekst}")
+
 
 # ==================== STOPKA Z PEŁNYM REGULAMINEM ====================
 st.write("---")
