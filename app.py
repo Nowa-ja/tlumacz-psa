@@ -20,19 +20,20 @@ def analizuj_czestotliwosc(audio_bytes):
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
-            data = data[:, 0]
+            data = data.mean(axis=1) # Średnia z kanałów dla stabilności
+        if len(data) == 0:
+            return 600.0
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
         szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
         wykryte = freq[szczytowa_indeks]
         if wykryte < 50 or wykryte > 3000:
             return 600.0
-        return wykryte
+        return float(wykryte)
     except:
         return 600.0
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
-
 GRUPA_TEKSTY_PORANNE = [
     "Bieguniem, bieguniem, bo się posikam!", 
     "Nie musimy wychodzić, ale zastanów się, czy to się spierze.",
@@ -42,7 +43,7 @@ GRUPA_TEKSTY_PORANNE = [
     "Sikać mi się chce, szybko!",
     "Nie musisz wstawać, wiem gdzie mogę się zrąbać.",
     "No wstawaj, obiecałem, że wyprowadzę cię na spacer.",
-    "Ktoś mądry powiedział - w zdrowym ciele zdrowy duch i ja to popieram.",
+    "W zdrowym ciele zdrowy duch i ja to popieram.",
     "Carpe diem - chwytaj smycz!"
 ]
 
@@ -53,9 +54,10 @@ GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = [
     "Będzie fajna kość, wpadnij na chwilę.",
     "Weź sobie godzinkę wolnego w pracy.",
     "Oj wpadnij choć na chwilę to dam ci kość!",
-    "Po co idziesz do pracy, dołek możesz wykopać tutaj.",
+    "Nie idź do pracy, pokopmy dołki.",
     "Weź mnie ze sobą, będę pilnować pieniędzy."
 ]
+
 TEKSTY_DZIENNE_ZABAWA = [
     "Interesują mnie tylko konkrety - gdzie są parówki?!",
     "Konkrety to smakołyki.",
@@ -70,8 +72,8 @@ TEKSTY_DZIENNE_ZABAWA = [
 GRUPA_TEKSTOW_POLUDNIOWYCH = [
     "Fajnie, że jesteś w domu, razem coś wymyślimy.",
     "Ty mi rzucaj smakołyk, a ja będę łapać.",
-    "Jestem gotowy, rzucaj tę kość.", 
-    "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.",
+    "Jestem gotowy, rzucaj kość.", 
+    "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.",
     "Rzucaj tę kość, tylko tym razem dobrze!",
     "Pobiegamy razem?"
 ]
@@ -84,16 +86,15 @@ GRUPA_TEKSTOW_POPOLUDNIOWYCH = [
     "Chodź szybko na spacer to zobaczysz coś ciekawego.",
     "Już miałem gryźć meble, by nie wyjść z wprawy."
 ]
-
 TEKSTY_WIECZORNE = [
-    "Jeszcze tylko kupkę, siku i można w kimono!", 
+    "Jeszcze tylko kupkę, śiku i można w kimono!", 
     "Zaraz mi pęcherz rozerwie.",
-    "Mogę zesrać się tutaj - nie musimy wychodzić!",
-    "Fundamentalne pytanie brzmi - srać czy nie srać?",
+    "Mogę sfajdać się tutaj - nie musimy wychodzić!",
+    "Fundamentalne pytanie brzmi - gdzie mam narobić?",
     "Wyczułem fajny towar w okolicy - może jest singlem?",
     "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.",
     "Chodź pokażę ci straszną babę.",
-    "A wiesz, że sąsiadka ma souvenir na sumieniu?",
+    "A wiesz, że sąsiadka ma coś na sumieniu?",
     "Cisza nocna jest od dwudziestej czwartej?"
 ]
 
@@ -131,11 +132,11 @@ TEKSTY_MALUCH = [
 
 TEKSTY_MINIATURA_JAMNIK = [
     "Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!",
-    "Jestem małym, wściekłym demonem! Ale potrafię zajść ci za skórę!"
+    "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"
 ]
 
 FONETYCZNY_BARAN = "Bęęęęęęęęęęęęęęę!"
-FONETYCZNA_KROWA = "Móóóóóóóóóóóóóóóó!"
+FONETYCHNA_KROWA = "Móóóóóóóóóóóóóóóó!"
 
 # --- FUNKCJA LOSUJĄCA JEDNO ZDANIE ---
 def pobierz_tekst_kontekstowy(baza):
@@ -163,9 +164,8 @@ st.markdown("""
 
 st.title("🐕 HauTłumacz FARMA v10.4")
 st.write("---")
-# --- SUROWY REJESTRATOR (PROSTO I AUTOMATYCZNIE) ---
-audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
+audio_nagrane = st.audio_input("Nagraj dźwięk:")
 if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
     wykryte_hz = analizuj_czestotliwosc(audio_bytes)
@@ -174,6 +174,7 @@ if audio_nagrane is not None:
     final_tekst = ""
     naglowek_ekranu = ""
     
+    # Warunki czasowe
     is_morning = time(4, 30) <= teraz < time(7, 0)
     is_pre_noon = time(7, 0) <= teraz < time(11, 0)
     is_noon = time(11, 0) <= teraz < time(14, 0)
@@ -183,14 +184,14 @@ if audio_nagrane is not None:
 
     st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-          # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 450 Hz) ---
+    # --- AUTOMATYCZNY DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 450 Hz) ---
     if 85 <= wykryte_hz <= 450:
         if wykryte_hz < 220:
             zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
-            zwierze = FONETYCZNA_KROWA
+            zwierze = FONETYCHNA_KROWA
             komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
@@ -202,34 +203,42 @@ if audio_nagrane is not None:
 
     # --- TRYB PSA (CZĘSTOTLIWOŚCI POWYŻEJ 450 Hz) ---
     else:
-        if 450 < wykryte_hz < 800:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-        elif 800 <= wykryte_hz < 1300:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-        elif wykryte_hz >= 1300:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
-            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+        # NOWOŚĆ: Skrajnie niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
+        if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
+            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
+        
+        # 1. ŚCISŁE PORY DNIA (Uruchamiają się w określonych godzinach)
+        elif is_morning:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
+            naglowek_ekranu = "[Poranny Bieguniem]"
+        elif is_pre_noon:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
+            naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+        elif is_noon:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
+            naglowek_ekranu = "[Południowa Rozgrywka]"
+        elif is_afternoon:
+            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+            naglowek_ekranu = "[Popołudniowa Radość]"
+        elif is_evening:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
+            naglowek_ekranu = "[Wieczorny Relaks]"
+        elif is_night:
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+            naglowek_ekranu = "[Nocny Alarm]"
+            
+        # 2. PODZIAŁ NA RASY (Działa jako zapasowy filtr)
         else:
-            if is_morning:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
-                naglowek_ekranu = "[Poranny Bieguniem]"
-            elif is_pre_noon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
-                naglowek_ekranu = "[Przedpołudniowy Samotnik]"
-            elif is_noon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
-                naglowek_ekranu = "[Południowa Rozgrywka]"
-            elif is_afternoon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                naglowek_ekranu = "[Popołudniowa Radość]"
-            elif is_evening:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
-                naglowek_ekranu = "[Wieczorny Relaks]"
-            elif is_night:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                naglowek_ekranu = "[Nocny Alarm]"
+            if 550 <= wykryte_hz < 800:
+                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
+            elif 800 <= wykryte_hz < 1300:
+                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
+            elif wykryte_hz >= 1300:
+                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
+                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
 
     # Generowanie mowy lektora
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
@@ -277,4 +286,3 @@ if st.button("📝 Regulamin strony"):
     
     Życzę wszystkim wiele radości z użytkowania tłumacza!
     """)
-
