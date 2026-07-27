@@ -49,7 +49,6 @@ def analizuj_audio(audio_bytes):
             if 60 <= wykryte <= 140 and (energia_basu / calkowita_energia) > 0.35:
                 czy_warczenie = True
             elif 450 <= wykryte <= 950 and (energia_ostra / calkowita_energia) > 0.30:
-                # Jeśli dominujący ton leży w paśmie ostrym i ma dużą koncentrację energii - to warczenie!
                 czy_warczenie = True
         
         if wykryte < 50 or wykryte > 3000:
@@ -69,7 +68,6 @@ TEKSTY_WARCZENIE_ALARM = [
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.",
     "Ani kroku dalej. To nie jest żart. Koniec zabawy."
 ]
-
 
 # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
 GRUPA_TEKSTY_PORANNE = [
@@ -240,15 +238,21 @@ if audio_nagrane is not None:
 
     # ==================== LOGIKA FILTROWANIA DŹWIĘKU ====================
 
+    # PRIORYTET 0: DETEKCJA NISKIEJ CZĘSTOTLIWOŚCI (Do 300Hz) - TWOJA NOWOŚĆ!
+    if wykryte_hz <= 300:
+        final_tekst = "Ostrzeżenie"
+        naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
+        tryb_alarmu = True
+
     # PRIORYTET 1: DETEKCJA EMOCJI - GROŹNE WARCZENIE (Czerwony Alarm)
-    if czy_warczenie:
+    elif czy_warczenie:
         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
         naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
         tryb_alarmu = True
 
-    # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (85 Hz - 450 Hz) - działa tylko gdy nie ma warczenia
-    elif 85 <= wykryte_hz <= 450:
-        if wykryte_hz < 220:
+    # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (Przesunięty od 301 Hz do 450 Hz, aby nie nachodził na Priorytet 0)
+    elif 301 <= wykryte_hz <= 450:
+        if wykryte_hz < 360:
             zwierze = FONETYCZNY_BARAN
             komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
@@ -260,7 +264,7 @@ if audio_nagrane is not None:
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
 
     # PRIORYTET 3: ZAKŁÓCENIA OTOCZENIA
-    elif wykryte_hz < 85 or wykryte_hz > 3000:
+    elif wykryte_hz > 3000:
         final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
         naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
 
@@ -268,7 +272,7 @@ if audio_nagrane is not None:
     else:
         # Niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
         if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCZAREK_ZABAWA)
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHARREK_ZABAWA) # poprawione na zmienną z kodu
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
         
         # 1. ŚCISŁE PORY DNIA
@@ -302,8 +306,7 @@ if audio_nagrane is not None:
             elif wykryte_hz >= 1300:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                 naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
-
-        # ==================== GENERATOR LEKTORA ORAZ MODYFIKACJA AUDIO ====================
+    # ==================== GENERATOR LEKTORA ORAZ MODYFIKACJA AUDIO ====================
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
     
     # Tworzenie głosu lektora (zawsze standardowa prędkość bazowa gTTS)
