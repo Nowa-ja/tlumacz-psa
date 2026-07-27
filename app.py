@@ -254,11 +254,11 @@ if audio_nagrane is not None:
     elif 301 <= wykryte_hz <= 450:
         if wykryte_hz < 360:
             zwierze = FONETYCZNY_BARAN
-            komentarz = "Wykryto głos z Twojego rodzinnego stada! Posłuchaj kumpla z pastwiska, nie pyskuj i nagraj psa!"
+            komentarz = "Ewidętnie nagrano barana! Nagraj psa a nie barana!"
             naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
         else:
             zwierze = FONETYCHNA_KROWA
-            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wydawać rozkazy i daj psu dojść do głosu!"
+            komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wyć i daj psu dojść do głosu!"
             naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
             
         final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
