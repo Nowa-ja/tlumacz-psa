@@ -9,8 +9,7 @@ from gtts import gTTS
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
 st.set_page_config(page_title="HauTłumacz PRO v11.0", page_icon="🐕", layout="centered")
 
-# --- STRUMIEŃ STYLÓW GLOBALNYCH (DZIAŁA NA CAŁĄ STRONĘ I ENCYKLOPEDIĘ) ---
-# --- STRUMIEŃ STYLÓW GLOBALNYCH (Z POWIĘKSZONYM MIKROFONEM I AUDIO) ---
+# --- STRUMIEŃ STYLÓW GLOBALNYCH (Z POWIĘKSZONYM MIKROFONEM I EMBEDOWANYM TŁEM) ---
 st.markdown("""
     <style>
     /* Główne tło strony - stonowany, ciemniejszy pastelowy szary/zielony */
@@ -31,18 +30,18 @@ st.markdown("""
         border-radius: 16px; 
         padding: 20px !important; 
         background-color: #f1f5f2; 
-        transform: scale(1.05); /* Delikatne powiększenie całego prostokąta */
+        transform: scale(1.05); 
         margin: 20px auto !important;
     }
     
-    /* Celujemy bezpośrednio w wewnętrzną ikonę mikrofonu i przycisk w Streamlit */
+    /* Zwiększenie wewnętrznej ikony mikrofonu */
     .stAudioInput button, .stAudioInput svg, [data-testid="stAudioInput"] svg {
-        width: 45px !important;      /* Znaczne zwiększenie szerokości ikony */
-        height: 45px !important;     /* Znaczne zwiększenie wysokości ikony */
+        width: 45px !important;      
+        height: 45px !important;     
         transition: transform 0.2s;
     }
 
-    /* Efekt po najechaniu myszką na mikrofon - lekko pulsuje, dając znać, że działa */
+    /* Efekt po najechaniu myszką na mikrofon */
     .stAudioInput button:hover {
         transform: scale(1.15);
     }
@@ -84,21 +83,36 @@ def sekcja_tlumacza():
     if "wykorzystane_teksty" not in st.session_state:
         st.session_state.wykorzystane_teksty = set()
 
-    # --- STABILNA ANALIZA HZ ORAZ DETEKCJA WARCZENIA ---
+    # --- STABILNA ANALIZA HZ ORAZ DETEKCJA WARCZENIA I DYNAMIKI SZCZEKANIA ---
     def analizuj_audio(audio_bytes):
+        """Zwraca krotkę: (wykryte_hz, czy_warczenie, czy_to_pies)"""
         try:
             sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
             if len(data.shape) > 1:
                 data = data.mean(axis=1)
             if len(data) == 0:
-                return 600.0, False
+                return 600.0, False, False
                 
+            # --- FILTR DYNAMIKI DŹWIĘKU (Odrzucanie kotów, krów, koni) ---
+            okienko = int(sample_rate * 0.05) 
+            energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
+            if len(energie_okienek) == 0:
+                return 600.0, False, False
+                
+            max_energia = max(energie_okienek)
+            srednia_energia = np.mean(energie_okienek)
+            
+            # Współczynnik gwałtowności impulsu
+            czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 3.5
+            
+            # --- ANALIZA CZĘSTOTLIWOŚCI (FFT) ---
             fft_spectrum = np.fft.rfft(data)
             freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
             
             szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
             wykryte = freq[szczytowa_indeks]
             
+            # DETEKCJA WARCZENIA
             czy_warczenie = False
             calkowita_energia = np.sum(np.abs(fft_spectrum))
             
@@ -114,11 +128,14 @@ def sekcja_tlumacza():
                     czy_warczenie = True
             
             if wykryte < 50 or wykryte > 3000:
-                return 600.0, False
+                return 600.0, False, False
                 
-            return float(wykryte), czy_warczenie
+            # Pies to albo głębokie warczenie, albo gwałtowne szczeknięcie
+            czy_to_pies = czy_warczenie or czy_impulsowy
+            
+            return float(wykryte), czy_warczenie, czy_to_pies
         except:
-            return 600.0, False
+            return 600.0, False, False
 
 # ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
     TEKSTY_WARCZENIE_ALARM = [
@@ -210,7 +227,7 @@ def sekcja_tlumacza():
         "W co ja się wpakowałem...!!!"
     ]
 
-    TEKSTY_DUZY_OWCZAREK_ZABAWA = [
+    TEKSTY_DUZY_OWCHAREK_ZABAWA = [
         "Dawaj parówkę albo sam sobie wezmę kawał mięcha!",
         "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?",
         "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
@@ -256,7 +273,8 @@ def sekcja_tlumacza():
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
-        wykryte_hz, czy_warczenie = analizuj_audio(audio_bytes)
+        # Odbieramy trzy wartości z nowej funkcji analizy
+        wykryte_hz, czy_warczenie, czy_to_pies = analizuj_audio(audio_bytes)
         
         teraz = datetime.now().time()
         final_tekst = ""
@@ -273,76 +291,75 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-               # ==================== POPRAWIONA LOGIKA FILTROWANIA DŹWIĘKU ====================
-        
-        # PRIORYTET 1: DETEKCJA EMOCJI - GROŹNE WARCZENIE (Najważniejsze!)
-        if czy_warczenie:
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
-            naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
-            tryb_alarmu = True
+        # ==================== NOWA BLOKADA: ODRZUCANIE KOTÓW, KRÓW I KONI ====================
+        if not czy_to_pies and not (301 <= wykryte_hz <= 450):
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania, wycia ani warczenia psa. Nasz algorytm ignoruje inne zwierzęta oraz płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
+            naglowek_ekranu = "[⚠️ Dźwięk zignorowany - To nie jest pies]"
 
-        # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (301 Hz - 450 Hz)
-        elif 301 <= wykryte_hz <= 450:
-            if wykryte_hz < 360:
-                zwierze = FONETYCZNY_BARAN
-                komentarz = "Ewidętnie nagrano barana! Nagraj psa a nie barana!"
-                naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
-            else:
-                zwierze = FONETYCHNA_KROWA
-                komentarz = "Wykryto dźwięki z zagrody! Przestań wyć i daj psu dojść do głosu!"
-                naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
-            final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę barana! {komentarz}"
-
-        # PRIORYTET 3: ZAKŁÓCENIA OTOCZENIA (Powyżej 3000 Hz)
-        elif wykryte_hz > 3000:
-            final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
-            naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
-
-        # PRIORYTET 4: SKRAJNY ALERT NISKIEJ CZĘSTOTLIWOŚCI (Przesunięty i zawężony, by nie blokował szczekania)
-        elif wykryte_hz <= 150:
-            final_tekst = "Wykryto nienaturalnie niski pomruk lub uderzenie powietrza w mikrofon. Spróbuj nagrać czysty dźwięk z odległości 30 cm."
-            naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
-            tryb_alarmu = True
-
-        # PRIORYTET 5: STANDARDOWY TRYB PSA (Częstotliwości powyżej 150 Hz do 3000 Hz)
+        # ==================== LOGIKA FILTROWANIA DŹWIĘKU DLA PSA ====================
         else:
-            # Niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
-            if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
-                naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
-            
-            # 1. ŚCISŁE PORY DNIA
-            elif is_morning:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
-                naglowek_ekranu = "[Poranny Bieguniem]"
-            elif is_pre_noon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
-                naglowek_ekranu = "[Przedpołudniowy Samotnik]"
-            elif is_noon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
-                naglowek_ekranu = "[Południowa Rozgrywka]"
-            elif is_afternoon:
-                final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                naglowek_ekranu = "[Popołudniowa Radość]"
-            elif is_evening:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
-                naglowek_ekranu = "[Wieczorny Relaks]"
-            elif is_night:
-                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                naglowek_ekranu = "[Nocny Alarm]"
-                
-            # 2. PODZIAŁ NA RASY (Zapasowy filtr)
-            else:
-                if 150 <= wykryte_hz < 800: # Rozszerzone od 150, aby objąć dawne niskie szczeknięcia
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
-                elif 800 <= wykryte_hz < 1300:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
-                elif wykryte_hz >= 1300:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+            # PRIORYTET 1: DETEKCJA EMOCJI - GROŹNE WARCZENIE
+            if czy_warczenie:
+                final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
+                naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
+                tryb_alarmu = True
 
+            # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (301 Hz - 450 Hz)
+            elif 301 <= wykryte_hz <= 450:
+                if wykryte_hz < 360:
+                    zwierze = FONETYCZNY_BARAN
+                    komentarz = "Ewidętnie nagrano barana! Nagraj psa a nie barana!"
+                    naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
+                else:
+                    zwierze = FONETYCHNA_KROWA
+                    komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wyć i daj psu dojść do głosu!"
+                    naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
+                final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
+
+            # PRIORYTET 3: ZAKŁÓCENIA OTOCZENIA (Powyżej 3000 Hz)
+            elif wykryte_hz > 3000:
+                final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
+                naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
+
+            # PRIORYTET 4: SKRAJNY ALERT NISKIEJ CZĘSTOTLIWOŚCI
+            elif wykryte_hz <= 150:
+                final_tekst = "Wykryto nienaturalnie niski pomruk lub uderzenie powietrza w mikrofon. Spróbuj nagrać czysty dźwięk z odległości 30 cm."
+                naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
+                tryb_alarmu = True
+
+            # PRIORYTET 5: STANDARDOWY TRYB PSA (Po przejściu testu dynamiki impulsowej)
+            else:
+                if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
+                elif is_morning:
+                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
+                    naglowek_ekranu = "[Poranny Bieguniem]"
+                elif is_pre_noon:
+                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
+                    naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+                elif is_noon:
+                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
+                    naglowek_ekranu = "[Południowa Rozgrywka]"
+                elif is_afternoon:
+                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+                    naglowek_ekranu = "[Popołudniowa Radość]"
+                elif is_evening:
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
+                    naglowek_ekranu = "[Wieczorny Relaks]"
+                elif is_night:
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+                    naglowek_ekranu = "[Nocny Alarm]"
+                else:
+                    if 150 <= wykryte_hz < 800:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
+                    elif 800 <= wykryte_hz < 1300:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
+                    elif wykryte_hz >= 1300:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
 
         # ==================== GENERATOR LEKTORA ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
@@ -398,7 +415,7 @@ def sekcja_tlumacza():
 # ==================== NOWA SEKCJA: ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
     """Tutaj tworzysz swoje posty o fascynującym świecie częstotliwości"""
-    st.title("🌐 Encyklopedia Częstotliwości Hz czyli komunikowanie się świata przyrody")
+    st.title("🌐 Encyklopedia Częstotliwości Hz")
     st.write("Odkryj niewidzialny i niesłyszalny świat wibracji, który rządzi życiem na Ziemi.")
     st.write("---")
     
