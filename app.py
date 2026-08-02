@@ -83,7 +83,7 @@ def sekcja_tlumacza():
     if "wykorzystane_teksty" not in st.session_state:
         st.session_state.wykorzystane_teksty = set()
 
-       # --- STALOWA ANALIZA AKUSTYCZNA: BLOKADA KOTÓW, KRÓW I KONI ---
+    # --- STALOWA ANALIZA AKUSTYCZNA: BLOKADA KOTÓW, KRÓW I KONI ---
     def analizuj_audio(audio_bytes):
         """Zwraca krotkę: (wykryte_hz, czy_warczenie, czy_to_pies)"""
         try:
@@ -112,15 +112,12 @@ def sekcja_tlumacza():
             szczytowa_indeks = np.argmax(magnituda)
             wykryte = freq[szczytowa_indeks]
             
-            # OBLICZANIE KONTRASTU I CZYSZCOŚCI TONALNEJ (Spectral Flatness / Peakiness)
-            # Koty mają bardzo ostre, czyste piki harmoniczne. Psy mają szeroki, brudny szum.
+            # OBLICZANIE KONTRASTU I CZYSZCOŚCI TONALNEJ
             srednia_widma = np.mean(magnituda)
             max_widma = magnituda[szczytowa_indeks]
-            
-            # Współczynnik czystości tonu: wysoka wartość oznacza czysty, śpiewny ton (KOT/KROWA/KOŃ)
             czystosc_tonalna = max_widma / (srednia_widma + 1e-6)
             
-            # DETEKCJA WARCZENIA (Niskie, brudne Hz)
+            # DETEKCJA WARCZENIA
             czy_warczenie = False
             calkowita_energia = np.sum(magnituda)
             
@@ -139,8 +136,6 @@ def sekcja_tlumacza():
                 return 600.0, False, False
 
             # --- OSTATECZNY WERDYKT GATUNKOWY ---
-            # Jeśli dźwięk jest zbyt czysty, melodyjny i przeciągły (czystosc_tonalna > 180), to KOT/KROWA.
-            # Psy, nawet gdy szczekają wysoko, mają zbyt "brudne" widmo pełne szumu.
             czy_to_melodyjne_miau = czystosc_tonalna > 180.0
             
             if czy_warczenie:
@@ -154,45 +149,6 @@ def sekcja_tlumacza():
         except:
             return 600.0, False, False
 
-                
-            max_energia = max(energie_okienek)
-            srednia_energia = np.mean(energie_okienek)
-            
-            # Współczynnik gwałtowności impulsu
-            czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 3.5
-            
-            # --- ANALIZA CZĘSTOTLIWOŚCI (FFT) ---
-            fft_spectrum = np.fft.rfft(data)
-            freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
-            
-            szczytowa_indeks = np.argmax(np.abs(fft_spectrum))
-            wykryte = freq[szczytowa_indeks]
-            
-            # DETEKCJA WARCZENIA
-            czy_warczenie = False
-            calkowita_energia = np.sum(np.abs(fft_spectrum))
-            
-            if calkowita_energia > 0:
-                niskie_pasmo = (freq >= 60) & (freq <= 140)
-                energia_basu = np.sum(np.abs(fft_spectrum[niskie_pasmo]))
-                ostre_pasmo = (freq >= 450) & (freq <= 950)
-                energia_ostra = np.sum(np.abs(fft_spectrum[ostre_pasmo]))
-                
-                if 60 <= wykryte <= 140 and (energia_basu / calkowita_energia) > 0.35:
-                    czy_warczenie = True
-                elif 450 <= wykryte <= 950 and (energia_ostra / calkowita_energia) > 0.30:
-                    czy_warczenie = True
-            
-            if wykryte < 50 or wykryte > 3000:
-                return 600.0, False, False
-                
-            # Pies to albo głębokie warczenie, albo gwałtowne szczeknięcie
-            czy_to_pies = czy_warczenie or czy_impulsowy
-            
-            return float(wykryte), czy_warczenie, czy_to_pies
-        except:
-            return 600.0, False, False
-
 # ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
     TEKSTY_WARCZENIE_ALARM = [
         "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
@@ -201,8 +157,10 @@ def sekcja_tlumacza():
         "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.",
         "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.",
         "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.",
-        "Ani kroku dalej. To nie jest żart. Koniec zabawy."
+        "Ani kroku dalej. To nie jest żart. End zabawy."
     ]
+
+   
     # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
     GRUPA_TEKSTY_PORANNE = [
         "Bieguniem, bieguniem, bo się posikam!", 
