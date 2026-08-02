@@ -210,7 +210,7 @@ def sekcja_tlumacza():
         "W co ja się wpakowałem...!!!"
     ]
 
-    TEKSTY_DUZY_OWCHAREK_ZABAWA = [
+    TEKSTY_DUZY_OWCZAREK_ZABAWA = [
         "Dawaj parówkę albo sam sobie wezmę kawał mięcha!",
         "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?",
         "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
@@ -273,15 +273,15 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== LOGIKA FILTROWANIA DŹWIĘKU ====================
-        if wykryte_hz <= 300:
-            final_tekst = "Ostrzeżenie"
-            naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
-            tryb_alarmu = True
-        elif czy_warczenie:
+               # ==================== POPRAWIONA LOGIKA FILTROWANIA DŹWIĘKU ====================
+        
+        # PRIORYTET 1: DETEKCJA EMOCJI - GROŹNE WARCZENIE (Najważniejsze!)
+        if czy_warczenie:
             final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
             naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
             tryb_alarmu = True
+
+        # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (301 Hz - 450 Hz)
         elif 301 <= wykryte_hz <= 450:
             if wykryte_hz < 360:
                 zwierze = FONETYCZNY_BARAN
@@ -289,16 +289,29 @@ def sekcja_tlumacza():
                 naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
             else:
                 zwierze = FONETYCHNA_KROWA
-                komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wyć i daj psu dojść do głosu!"
+                komentarz = "Wykryto dźwięki z zagrody! Przestań wyć i daj psu dojść do głosu!"
                 naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
-            final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
+            final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę barana! {komentarz}"
+
+        # PRIORYTET 3: ZAKŁÓCENIA OTOCZENIA (Powyżej 3000 Hz)
         elif wykryte_hz > 3000:
             final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
             naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
+
+        # PRIORYTET 4: SKRAJNY ALERT NISKIEJ CZĘSTOTLIWOŚCI (Przesunięty i zawężony, by nie blokował szczekania)
+        elif wykryte_hz <= 150:
+            final_tekst = "Wykryto nienaturalnie niski pomruk lub uderzenie powietrza w mikrofon. Spróbuj nagrać czysty dźwięk z odległości 30 cm."
+            naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
+            tryb_alarmu = True
+
+        # PRIORYTET 5: STANDARDOWY TRYB PSA (Częstotliwości powyżej 150 Hz do 3000 Hz)
         else:
+            # Niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
             if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
                 naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
+            
+            # 1. ŚCISŁE PORY DNIA
             elif is_morning:
                 final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
                 naglowek_ekranu = "[Poranny Bieguniem]"
@@ -317,8 +330,10 @@ def sekcja_tlumacza():
             elif is_night:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Nocny Alarm]"
+                
+            # 2. PODZIAŁ NA RASY (Zapasowy filtr)
             else:
-                if 550 <= wykryte_hz < 800:
+                if 150 <= wykryte_hz < 800: # Rozszerzone od 150, aby objąć dawne niskie szczeknięcia
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
                 elif 800 <= wykryte_hz < 1300:
@@ -327,6 +342,7 @@ def sekcja_tlumacza():
                 elif wykryte_hz >= 1300:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+
 
         # ==================== GENERATOR LEKTORA ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
