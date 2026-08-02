@@ -83,7 +83,7 @@ def sekcja_tlumacza():
     if "wykorzystane_teksty" not in st.session_state:
         st.session_state.wykorzystane_teksty = set()
 
-    # --- STABILNA ANALIZA HZ ORAZ DETEKCJA WARCZENIA I DYNAMIKI SZCZEKANIA ---
+       # --- STALOWA ANALIZA AKUSTYCZNA: BLOKADA KOTÓW, KRÓW I KONI ---
     def analizuj_audio(audio_bytes):
         """Zwraca krotkę: (wykryte_hz, czy_warczenie, czy_to_pies)"""
         try:
@@ -93,11 +93,67 @@ def sekcja_tlumacza():
             if len(data) == 0:
                 return 600.0, False, False
                 
-            # --- FILTR DYNAMIKI DŹWIĘKU (Odrzucanie kotów, krów, koni) ---
+            # --- FILTR 1: DYNAMIKA IMPULSU (Test gwałtowności) ---
             okienko = int(sample_rate * 0.05) 
             energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
             if len(energie_okienek) == 0:
                 return 600.0, False, False
+                
+            max_energia = max(energie_okienek)
+            srednia_energia = np.mean(energie_okienek)
+            czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 3.8
+            
+            # --- FILTR 2: BIOAKUSTYCZNA ANALIZA SPEKTRALNA (FFT) ---
+            fft_spectrum = np.fft.rfft(data)
+            freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
+            
+            # Magnituda (głośność) poszczególnych składowych
+            magnituda = np.abs(fft_spectrum)
+            szczytowa_indeks = np.argmax(magnituda)
+            wykryte = freq[szczytowa_indeks]
+            
+            # OBLICZANIE KONTRASTU I CZYSZCOŚCI TONALNEJ (Spectral Flatness / Peakiness)
+            # Koty mają bardzo ostre, czyste piki harmoniczne. Psy mają szeroki, brudny szum.
+            srednia_widma = np.mean(magnituda)
+            max_widma = magnituda[szczytowa_indeks]
+            
+            # Współczynnik czystości tonu: wysoka wartość oznacza czysty, śpiewny ton (KOT/KROWA/KOŃ)
+            czystosc_tonalna = max_widma / (srednia_widma + 1e-6)
+            
+            # DETEKCJA WARCZENIA (Niskie, brudne Hz)
+            czy_warczenie = False
+            calkowita_energia = np.sum(magnituda)
+            
+            if calkowita_energia > 0:
+                niskie_pasmo = (freq >= 60) & (freq <= 140)
+                energia_basu = np.sum(magnituda[niskie_pasmo])
+                ostre_pasmo = (freq >= 450) & (freq <= 950)
+                energia_ostra = np.sum(magnituda[ostre_pasmo])
+                
+                if 60 <= wykryte <= 140 and (energia_basu / calkowita_energia) > 0.35:
+                    czy_warczenie = True
+                elif 450 <= wykryte <= 950 and (energia_ostra / calkowita_energia) > 0.30:
+                    czy_warczenie = True
+
+            if wykryte < 50 or wykryte > 3000:
+                return 600.0, False, False
+
+            # --- OSTATECZNY WERDYKT GATUNKOWY ---
+            # Jeśli dźwięk jest zbyt czysty, melodyjny i przeciągły (czystosc_tonalna > 180), to KOT/KROWA.
+            # Psy, nawet gdy szczekają wysoko, mają zbyt "brudne" widmo pełne szumu.
+            czy_to_melodyjne_miau = czystosc_tonalna > 180.0
+            
+            if czy_warczenie:
+                czy_to_pies = True
+            elif czy_impulsowy and not czy_to_melodyjne_miau:
+                czy_to_pies = True
+            else:
+                czy_to_pies = False
+                
+            return float(wykryte), czy_warczenie, czy_to_pies
+        except:
+            return 600.0, False, False
+
                 
             max_energia = max(energie_okienek)
             srednia_energia = np.mean(energie_okienek)
