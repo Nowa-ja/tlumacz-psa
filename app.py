@@ -260,8 +260,8 @@ def sekcja_tlumacza():
         "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"
     ]
 
-    FONETYCZNY_BARAN = "Bęęęęęęęęęęęęęęę!"
-    FONETYCHNA_KROWA = "Móóóóóóóóóóóóóóóó!"
+    FONETYCZNY_BARAN = "Bęęęęęę!"
+    FONETYCHNA_KROWA = "Móóóóóó!"
 
     # --- FUNKCJA LOSUJĄCA JEDNO ZDANIE ---
     def pobierz_tekst_kontekstowy(baza):
@@ -310,31 +310,32 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie posiada wybuchowej dynamiki psiego szczekania. Nasz algorytm ignoruje inne zwierzęta (np. koty) oraz płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
             naglowek_ekranu = "[⚠️ Dźwięk zignorowany]"
 
-        # ==================== LOGIKA FILTROWANIA DŹWIĘKU DLA PSA ====================
+               # ==================== LOGIKA FILTROWANIA DŹWIĘKU DLA PSA ====================
         else:
             if czy_warczenie:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                 naglowek_ekranu = "[🚨 KRYTYCZNE OSTRZEŻENIE - AGRESJA/STRACH]"
                 tryb_alarmu = True
                 styl_glosu = "duzy"  # Warczenie zawsze brzmi groźnie i basowo
+                
             elif 301 <= wykryte_hz <= 450:
                 if wykryte_hz < 360:
-                    zwierze = FONETYCZNY_BARAN
-                    komentarz = "Ewidętnie nagrano barana! Nagraj psa a nie barana!"
                     naglowek_ekranu = "[Wykryto Samca]"
+                    final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
                 else:
-                    zwierze = FONETYCHNA_KROWA
-                    komentarz = "Wykryto dźwięki z zagrody! Przestań wyć i daj psu dojść do głosu!"
                     naglowek_ekranu = "[Wykryto Samicę]"
-                final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę barana! {komentarz}"
+                    final_tekst = "Móóóóóóóóóóóóóóóó! Wykryto dźwięki z zagrody! Przestań wyć i daj psu dojść do głosu!"
+                    
             elif wykryte_hz > 3000:
                 final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
                 naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
+                
             elif wykryte_hz <= 150:
                 final_tekst = "Wykryto nienaturalnie niski pomruk lub uderzenie powietrza w mikrofon. Spróbuj nagrać czysty dźwięk z odległości 30 cm."
                 naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
                 tryb_alarmu = True
                 styl_glosu = "duzy"
+                
             else:
                 if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
@@ -371,6 +372,7 @@ def sekcja_tlumacza():
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniatura]"
                         styl_glosu = "miniatura"  # Miniaturka dostaje bardzo wysoki głos
+
         # ==================== NOWY GENERATOR LEKTORA Z MODYFIKACJĄ TONU (PITCH) ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
