@@ -185,12 +185,23 @@ def sekcja_tlumacza():
         st.session_state.ostatni_tekst = wybrany
         return wybrany
 
-    # --- STYLE CSS ---
+       # --- STYLE CSS (ZMODYFIKOWANE ŁAGODNE TŁO DLA OCZU) ---
     st.markdown("""
         <style>
-        .stApp { background-color: #f4f7f5; }
+        /* Główne tło strony - stonowany, ciemniejszy pastelowy szary/zielony */
+        .stApp, [data-testid="stAppViewContainer"] { 
+            background-color: #e2e8e4 !important; 
+        }
+        
+        /* Tło bocznego panelu (Menu) - dopasowane i ciemniejsze */
+        [data-testid="stSidebar"] { 
+            background-color: #cbd5ce !important; 
+        }
+        
         h1 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
-        .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #e8f5e9; }
+        .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #f1f5f2; }
+        
+        /* Animacja migającego, czerwonego tła dla niebezpieczeństwa */
         @keyframes pulse-red {
             0% { background-color: rgba(211, 47, 47, 0.1); }
             50% { background-color: rgba(211, 47, 47, 0.3); }
@@ -204,6 +215,8 @@ def sekcja_tlumacza():
             color: #b71c1c !important;
             font-weight: bold;
         }
+        
+        /* Jasne, kontrastowe karty wpisów - tekst będzie idealnie widoczny */
         .blog-card {
             background-color: #ffffff;
             padding: 20px;
@@ -211,6 +224,7 @@ def sekcja_tlumacza():
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             border-left: 5px solid #1e4620;
+            color: #111111 !important;
         }
         </style>
     """, unsafe_allow_html=True)
