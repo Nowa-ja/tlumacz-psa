@@ -10,6 +10,7 @@ from gtts import gTTS
 st.set_page_config(page_title="HauTłumacz PRO v11.0", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH (DZIAŁA NA CAŁĄ STRONĘ I ENCYKLOPEDIĘ) ---
+# --- STRUMIEŃ STYLÓW GLOBALNYCH (Z POWIĘKSZONYM MIKROFONEM I AUDIO) ---
 st.markdown("""
     <style>
     /* Główne tło strony - stonowany, ciemniejszy pastelowy szary/zielony */
@@ -23,7 +24,28 @@ st.markdown("""
     }
     
     h1 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
-    .stAudioInput { border: 2px dashed #81c784 !important; border-radius: 12px; padding: 10px; background-color: #f1f5f2; }
+    
+    /* POWIĘKSZENIE CAŁEGO WIDŻETU NAGRYWANIA I IKONY MIKROFONU */
+    .stAudioInput { 
+        border: 3px dashed #81c784 !important; 
+        border-radius: 16px; 
+        padding: 20px !important; 
+        background-color: #f1f5f2; 
+        transform: scale(1.05); /* Delikatne powiększenie całego prostokąta */
+        margin: 20px auto !important;
+    }
+    
+    /* Celujemy bezpośrednio w wewnętrzną ikonę mikrofonu i przycisk w Streamlit */
+    .stAudioInput button, .stAudioInput svg, [data-testid="stAudioInput"] svg {
+        width: 45px !important;      /* Znaczne zwiększenie szerokości ikony */
+        height: 45px !important;     /* Znaczne zwiększenie wysokości ikony */
+        transition: transform 0.2s;
+    }
+
+    /* Efekt po najechaniu myszką na mikrofon - lekko pulsuje, dając znać, że działa */
+    .stAudioInput button:hover {
+        transform: scale(1.15);
+    }
     
     /* Animacja migającego, czerwonego tła dla niebezpieczeństwa */
     @keyframes pulse-red {
