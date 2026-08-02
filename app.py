@@ -147,7 +147,7 @@ def sekcja_tlumacza():
         except:
             return 600.0, False, False
 
-    # ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
+# ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
     TEKSTY_WARCZENIE_ALARM = [
         "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
         "Nie podchodź. To nie są żarty, ani zabawa.",
@@ -158,7 +158,7 @@ def sekcja_tlumacza():
         "Ani kroku dalej. To nie jest żart. Koniec zabawy."
     ]
 
-    # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
+# ==================== BAZY TEKSTÓW GODZINOWYCH ====================
     GRUPA_TEKSTY_PORANNE = [
         "Bieguniem, bieguniem, bo się posikam!", 
         "Nie musimy wychodzić, ale zastanów się, czy to się spierze.",
@@ -300,26 +300,30 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== STALOWA ZAPORA ANTY-GATUNKOWA ====================
-        if not czy_to_pies and not (301 <= wykryte_hz <= 450):
-            final_tekst = "Wykryty dźwięk nie przypomina szczekania, wycia ani warczenia psa. Nasz algorytm ignoruje inne zwierzęta (np. koty) oraz płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
-            naglowek_ekranu = "[⚠️ Dźwięk zignorowany - To nie jest pies]"
+        # ==================== BEZWZGLĘDNA BLOKADA GATUNKOWA ORAZ PASMA LUDZIEGO BEŁKOTU ====================
+        if not czy_warczenie and wykryte_hz < 450 and not (301 <= wykryte_hz <= 450):
+            final_tekst = "Wykryty dźwięk nie przypomina gwałtownego szczekania ani wycia psa. Nasz obserwator ignoruje ludzki bełkot, koty oraz inne płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
+            naglowek_ekranu = "[⚠️ Dźwięk zignorowany]"
+
+        elif not czy_to_pies and not (301 <= wykryte_hz <= 450):
+            final_tekst = "Wykryty dźwięk nie posiada wybuchowej dynamiki psiego szczekania. Nasz algorytm ignoruje inne zwierzęta (np. koty) oraz płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
+            naglowek_ekranu = "[⚠️ Dźwięk zignorowany]"
 
         # ==================== LOGIKA FILTROWANIA DŹWIĘKU DLA PSA ====================
         else:
             if czy_warczenie:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
-                naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
+                naglowek_ekranu = "[🚨 KRYTYCZNE OSTRZEŻENIE - AGRESJA/STRACH]"
                 tryb_alarmu = True
             elif 301 <= wykryte_hz <= 450:
                 if wykryte_hz < 360:
                     zwierze = FONETYCZNY_BARAN
                     komentarz = "Ewidętnie nagrano barana! Nagraj psa a nie barana!"
-                    naglowek_ekranu = "[Wykryto Samca - Tryb Barana]"
+                    naglowek_ekranu = "[Wykryto Samca]"
                 else:
                     zwierze = FONETYCHNA_KROWA
                     komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wyć i daj psu dojść do głosu!"
-                    naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
+                    naglowek_ekranu = "[Wykryto Samicę]"
                 final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
             elif wykryte_hz > 3000:
                 final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
@@ -331,36 +335,35 @@ def sekcja_tlumacza():
             else:
                 if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Wynik Analizy]"
                 elif is_morning:
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
-                    naglowek_ekranu = "[Poranny Bieguniem]"
+                    naglowek_ekranu = "[Wynik Analizy]"
                 elif is_pre_noon:
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
-                    naglowek_ekranu = "[Przedpołudniowy Samotnik]"
+                    naglowek_ekranu = "[Wynik Analizy]"
                 elif is_noon:
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
-                    naglowek_ekranu = "[Południowa Rozgrywka]"
+                    naglowek_ekranu = "[Wynik Analizy]"
                 elif is_afternoon:
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                    naglowek_ekranu = "[Popołudniowa Radość]"
+                    naglowek_ekranu = "[Wynik Analizy]"
                 elif is_evening:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
-                    naglowek_ekranu = "[Wieczorny Relaks]"
+                    naglowek_ekranu = "[Wynik Analizy]"
                 elif is_night:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                    naglowek_ekranu = "[Nocny Alarm]"
+                    naglowek_ekranu = "[Wynik Analizy]"
                 else:
-                    if 150 <= wykryte_hz < 800:
+                    if 450 <= wykryte_hz < 800:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
-                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni Spryciarz]"
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średnia Rasa]"
                     elif 800 <= wykryte_hz < 1300:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
-                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mały Wojownik]"
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mała Rasa]"
                     elif wykryte_hz >= 1300:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
-                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
-
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniatura]"
         # ==================== GENERATOR LEKTORA ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
@@ -428,7 +431,7 @@ def sekcja_bloga():
         Człowiek rejestruje dźwięki w granicach od 20 do 20 000 Hz. Wszystko poniżej i powyżej tej granicy 
         pozostaje dla nas kompletną ciszą. Jednak dla reszty planety ta "cisza" to tętniący życiem kanał informacyjny.</p>
         <p>Zrozumienie częstotliwości pozwala całkowicie zmienić nasz stosunek do otaczającego nas świata. 
-        Zwierzęta, rośliny, a even mikroorganizmy nieustannie nadają i odbierają sygnały falowe. 
+        Zwierzęta, rośliny, a nawet mikroorganizmy nieustannie nadają i odbierają sygnały falowe. 
         Wibracja to pierwotna forma komunikacji w kosmosie.</p>
     </div>
     """, unsafe_allow_html=True)
