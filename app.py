@@ -82,7 +82,7 @@ def sekcja_tlumacza():
         st.session_state.ostatni_tekst = ""
     if "wykorzystane_teksty" not in st.session_state:
         st.session_state.wykorzystane_teksty = set()
-    # --- STALOWA ANALIZA AKUSTYCZNA: BLOKADA KOTÓW, KRÓW I KONI ---
+    # --- STALOWA ANALIZA AKUSTYZCNA: BLOKADA KOTÓW, KRÓW I KONI ---
     def analizuj_audio(audio_bytes):
         """Zwraca krotkę: (wykryte_hz, czy_warczenie, czy_to_pies)"""
         try:
@@ -289,6 +289,7 @@ def sekcja_tlumacza():
         final_tekst = ""
         naglowek_ekranu = ""
         tryb_alarmu = False
+        styl_glosu = "sredni"  # Domyślny, naturalny głos dla średnich psów
         
         # Warunki czasowe
         is_morning = time(4, 30) <= teraz < time(7, 0)
@@ -315,6 +316,7 @@ def sekcja_tlumacza():
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                 naglowek_ekranu = "[🚨 KRYTYCZNE OSTRZEŻENIE - AGRESJA/STRACH]"
                 tryb_alarmu = True
+                styl_glosu = "duzy"  # Warczenie zawsze brzmi groźnie i basowo
             elif 301 <= wykryte_hz <= 450:
                 if wykryte_hz < 360:
                     zwierze = FONETYCZNY_BARAN
@@ -332,10 +334,12 @@ def sekcja_tlumacza():
                 final_tekst = "Wykryto nienaturalnie niski pomruk lub uderzenie powietrza w mikrofon. Spróbuj nagrać czysty dźwięk z odległości 30 cm."
                 naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
                 tryb_alarmu = True
+                styl_glosu = "duzy"
             else:
                 if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Wynik Analizy]"
+                    styl_glosu = "duzy"  # Duży owczarek dostaje niski głos
                 elif is_morning:
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
                     naglowek_ekranu = "[Wynik Analizy]"
@@ -358,13 +362,16 @@ def sekcja_tlumacza():
                     if 450 <= wykryte_hz < 800:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średnia Rasa]"
+                        styl_glosu = "sredni"
                     elif 800 <= wykryte_hz < 1300:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MALUCH)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Mała Rasa]"
+                        styl_glosu = "maly"  # Mały pies dostaje piskliwy ton
                     elif wykryte_hz >= 1300:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniatura]"
-        # ==================== GENERATOR LEKTORA ====================
+                        styl_glosu = "miniatura"  # Miniaturka dostaje bardzo wysoki głos
+        # ==================== NOWY GENERATOR LEKTORA Z MODYFIKACJĄ TONU (PITCH) ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
         fp_raw = io.BytesIO()
@@ -373,10 +380,24 @@ def sekcja_tlumacza():
         
         try:
             sample_rate, data = wavfile.read(fp_raw)
+            
+            # 1. Ustalanie prędkości lektora
             mnoznik_predkosci = 1.30 if tryb_alarmu else 1.15
+            if styl_glosu == "maly" or styl_glosu == "miniatura":
+                mnoznik_predkosci = 1.25  # Małe wariaciki mówią trochę szybciej!
+            
             skurczony_rozmiar = int(len(data) / mnoznik_predkosci)
             indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
             przyspieszone_data = data[indeksy]
+            
+            # 2. MODYFIKACJA WYSOKOŚCI TONU (PITCH SHIFT) poprzez zmianę częstotliwości próbkowania serwera
+            if styl_glosu == "duzy":
+                sample_rate = int(sample_rate * 0.82)  # Obniżamy ton (głęboki, basowy głos dojrzałego psa)
+            elif styl_glosu == "maly":
+                sample_rate = int(sample_rate * 1.18)  # Podwyższamy ton (młody, piskliwy wariacik)
+            elif styl_glosu == "miniatura":
+                sample_rate = int(sample_rate * 1.30)  # Bardzo wysoki, kreskówkowy ton małego chojraka
+                
             fp = io.BytesIO()
             wavfile.write(fp, sample_rate, przyspieszone_data)
             fp.seek(0)
