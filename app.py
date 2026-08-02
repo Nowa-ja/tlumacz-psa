@@ -303,7 +303,7 @@ def sekcja_tlumacza():
 
         # ==================== BEZWZGLĘDNA BLOKADA GATUNKOWA ORAZ PASMA LUDZIEGO BEŁKOTU ====================
         if not czy_warczenie and wykryte_hz < 450 and not (301 <= wykryte_hz <= 450):
-            final_tekst = "Wykryty dźwięk nie przypomina gwałtownego szczekania ani wycia psa. Nasz obserwator ignoruje ludzki bełkot, koty oraz inne płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania. Spróbuj zaszczekać wyraźniej - wierzę, że dasz radę!"
             naglowek_ekranu = "[⚠️ Dźwięk zignorowany]"
 
         elif not czy_to_pies and not (301 <= wykryte_hz <= 450):
