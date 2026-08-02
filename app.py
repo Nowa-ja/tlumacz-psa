@@ -472,11 +472,27 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
+    # ==================== TUTAJ DOPISUJESZ KOLEJNE POSTY (NP. POST 3) ====================
+    # Zwróć uwagę na równe odstępy (wcięcia) od lewej krawędzi ekranu!
+    st.markdown("""
+    <div class='blog-card'>
+        <h3>🕷️ Post #3: Następny post - Sieć jak gitara – Jak pająki stroją swoje domy</h3>
+        <p><b>Data publikacji:</b> Co to ma wspólnego z psami??? | <b>Autor:</b> Tery</p>
+        <p>
+        
+        
+        
+        
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
 # ==================== NAVIGATION / NAWIGACJA STRONY (PASEK BOCZNY) ====================
 st.sidebar.title("🐾 Menu Główne")
-wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)"])
+wybór = st.sidebar.radio("Przejdź do:", ["🐕 Hau.online", "🌐 Encyklopedia Hz (Blog)"])
 
 if wybór == "🐕 HauTłumacz":
     sekcja_tlumacza()
 elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
+
