@@ -185,7 +185,7 @@ def sekcja_tlumacza():
         st.session_state.ostatni_tekst = wybrany
         return wybrany
 
-       # --- STYLE CSS (ZMODYFIKOWANE ŁAGODNE TŁO DLA OCZU) ---
+           # --- STYLE CSS (ŁAGODNE TŁO STRONY ORAZ ARTYKUŁÓW W ENCYKLOPEDII) ---
     st.markdown("""
         <style>
         /* Główne tło strony - stonowany, ciemniejszy pastelowy szary/zielony */
@@ -216,18 +216,19 @@ def sekcja_tlumacza():
             font-weight: bold;
         }
         
-        /* Jasne, kontrastowe karty wpisów - tekst będzie idealnie widoczny */
+        /* MATOWE, CIEMNIEJSZE KARTY WPISÓW W ENCYKLOPEDII (Dla odpoczynku oczu) */
         .blog-card {
-            background-color: #ffffff;
+            background-color: #d1dad4 !important; /* Zmiana z białego na głęboki, pastelowy odcień */
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             border-left: 5px solid #1e4620;
-            color: #111111 !important;
+            color: #1e3321 !important; /* Ciemnozielony czytelny tekst, przyjazny dla oka */
         }
         </style>
     """, unsafe_allow_html=True)
+
 
     st.title("🐕 HauTłumacz PRO v11.0")
     st.write("---")
