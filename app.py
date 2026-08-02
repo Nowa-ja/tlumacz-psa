@@ -127,7 +127,7 @@ TEKSTY_WIECZORNE = [
     "Zaraz mi pęcherz rozerwie.",
     "Mogę sfajdać się tutaj - nie musimy wychodzić!",
     "Fundamentalne pytanie brzmi - gdzie mam narobić?",
-    "Wyczułem fajny towar w okolicy - może jest singlem?",
+    "Wyczułem fajny towar w okolicy - maybe jest singlem?",
     "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.",
     "Chodź pokażę ci straszną babę.",
     "A wiesz, że sąsiadka ma coś na sumieniu?",
@@ -148,7 +148,7 @@ TEKSTY_NOCNE = [
     "W co ja się wpakowałem...!!!"
 ]
 
-TEKSTY_DUZY_OWCZAREK_ZABAWA = [
+TEKSTY_DUZY_OWCHAREK_ZABAWA = [
     "Dawaj parówkę albo sam sobie wezmę kawał mięcha!",
     "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?",
     "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!",
@@ -213,9 +213,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🐕 HauTłumacz FARMA v10.4")
+st.title("🐕 HauTłumacz PRO v10.4")
 st.write("---")
-
 audio_nagrane = st.audio_input("Nagraj dźwięk:")
 if audio_nagrane is not None:
     audio_bytes = audio_nagrane.read()
@@ -238,7 +237,7 @@ if audio_nagrane is not None:
 
     # ==================== LOGIKA FILTROWANIA DŹWIĘKU ====================
 
-    # PRIORYTET 0: DETEKCJA NISKIEJ CZĘSTOTLIWOŚCI (Do 300Hz) - TWOJA NOWOŚĆ!
+    # PRIORYTET 0: DETEKCJA NISKIEJ CZĘSTOTLIWOŚCI (Do 300Hz)
     if wykryte_hz <= 300:
         final_tekst = "Ostrzeżenie"
         naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
@@ -250,7 +249,7 @@ if audio_nagrane is not None:
         naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
         tryb_alarmu = True
 
-    # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (Przesunięty od 301 Hz do 450 Hz, aby nie nachodził na Priorytet 0)
+    # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU
     elif 301 <= wykryte_hz <= 450:
         if wykryte_hz < 360:
             zwierze = FONETYCZNY_BARAN
@@ -272,7 +271,7 @@ if audio_nagrane is not None:
     else:
         # Niskie szczeknięcie dużego psa (np. 450-550 Hz), o ile to nie pora spania/spaceru
         if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
-            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHARREK_ZABAWA) # poprawione na zmienną z kodu
+            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA) # Naprawiona ukryta literówka
             naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży Owczarek]"
         
         # 1. ŚCISŁE PORY DNIA
@@ -306,6 +305,7 @@ if audio_nagrane is not None:
             elif wykryte_hz >= 1300:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                 naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Sfrustrowany Maluch]"
+
     # ==================== GENERATOR LEKTORA ORAZ MODYFIKACJA AUDIO ====================
     tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
     
