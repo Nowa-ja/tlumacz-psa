@@ -82,7 +82,6 @@ def sekcja_tlumacza():
         st.session_state.ostatni_tekst = ""
     if "wykorzystane_teksty" not in st.session_state:
         st.session_state.wykorzystane_teksty = set()
-
     # --- STALOWA ANALIZA AKUSTYCZNA: BLOKADA KOTÓW, KRÓW I KONI ---
     def analizuj_audio(audio_bytes):
         """Zwraca krotkę: (wykryte_hz, czy_warczenie, czy_to_pies)"""
@@ -93,7 +92,7 @@ def sekcja_tlumacza():
             if len(data) == 0:
                 return 600.0, False, False
                 
-            # --- FILTR 1: DYNAMIKA IMPULSU (Test gwałtowności) ---
+            # --- FILTR 1: DYNAMIKA IMPULSU (Test gwałtowności - podkręcony do 4.5) ---
             okienko = int(sample_rate * 0.05) 
             energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
             if len(energie_okienek) == 0:
@@ -101,18 +100,17 @@ def sekcja_tlumacza():
                 
             max_energia = max(energie_okienek)
             srednia_energia = np.mean(energie_okienek)
-            czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 3.8
+            czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
             
             # --- FILTR 2: BIOAKUSTYCZNA ANALIZA SPEKTRALNA (FFT) ---
             fft_spectrum = np.fft.rfft(data)
             freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
             
-            # Magnituda (głośność) poszczególnych składowych
             magnituda = np.abs(fft_spectrum)
             szczytowa_indeks = np.argmax(magnituda)
             wykryte = freq[szczytowa_indeks]
             
-            # OBLICZANIE KONTRASTU I CZYSZCOŚCI TONALNEJ
+            # OBLICZANIE CZYSTOŚCI TONALNEJ (Zwiększona czułość na melodyjność)
             srednia_widma = np.mean(magnituda)
             max_widma = magnituda[szczytowa_indeks]
             czystosc_tonalna = max_widma / (srednia_widma + 1e-6)
@@ -135,8 +133,8 @@ def sekcja_tlumacza():
             if wykryte < 50 or wykryte > 3000:
                 return 600.0, False, False
 
-            # --- OSTATECZNY WERDYKT GATUNKOWY ---
-            czy_to_melodyjne_miau = czystosc_tonalna > 180.0
+            # --- OSTATECZNY WERDYKT GATUNKOWY (Mocniejszy filtr) ---
+            czy_to_melodyjne_miau = czystosc_tonalna > 120.0
             
             if czy_warczenie:
                 czy_to_pies = True
@@ -149,7 +147,7 @@ def sekcja_tlumacza():
         except:
             return 600.0, False, False
 
-# ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
+    # ==================== NOWA BAZA: STRASZNE WARCZENIE ====================
     TEKSTY_WARCZENIE_ALARM = [
         "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
         "Nie podchodź. To nie są żarty, ani zabawa.",
@@ -157,10 +155,9 @@ def sekcja_tlumacza():
         "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.",
         "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.",
         "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.",
-        "Ani kroku dalej. To nie jest żart. End zabawy."
+        "Ani kroku dalej. To nie jest żart. Koniec zabawy."
     ]
 
-   
     # ==================== BAZY TEKSTÓW GODZINOWYCH ====================
     GRUPA_TEKSTY_PORANNE = [
         "Bieguniem, bieguniem, bo się posikam!", 
@@ -174,7 +171,6 @@ def sekcja_tlumacza():
         "W zdrowym ciele zdrowy duch i ja to popieram.",
         "Carpe diem - chwytaj smycz!"
     ]
-
     GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = [
         "No i co ja tak w samotności mam być przez resztę dnia?",
         "O której mogę się ciebie spodziewać?",
@@ -287,7 +283,6 @@ def sekcja_tlumacza():
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
-        # Odbieramy trzy wartości z nowej funkcji analizy
         wykryte_hz, czy_warczenie, czy_to_pies = analizuj_audio(audio_bytes)
         
         teraz = datetime.now().time()
@@ -305,20 +300,17 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== NOWA BLOKADA: ODRZUCANIE KOTÓW, KRÓW I KONI ====================
+        # ==================== STALOWA ZAPORA ANTY-GATUNKOWA ====================
         if not czy_to_pies and not (301 <= wykryte_hz <= 450):
-            final_tekst = "Wykryty dźwięk nie przypomina szczekania, wycia ani warczenia psa. Nasz algorytm ignoruje inne zwierzęta oraz płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania, wycia ani warczenia psa. Nasz algorytm ignoruje inne zwierzęta (np. koty) oraz płaskie odgłosy tła. Spróbuj zaszczekać wyraźniej!"
             naglowek_ekranu = "[⚠️ Dźwięk zignorowany - To nie jest pies]"
 
         # ==================== LOGIKA FILTROWANIA DŹWIĘKU DLA PSA ====================
         else:
-            # PRIORYTET 1: DETEKCJA EMOCJI - GROŹNE WARCZENIE
             if czy_warczenie:
                 final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                 naglowek_ekranu = "[🚨 KRTYTYCZNE OSTRZEŻENIE - EMOCJA: AGRESJA/STRACH]"
                 tryb_alarmu = True
-
-            # PRIORYTET 2: DETEKTOR LUDZKIEGO GŁOSU (301 Hz - 450 Hz)
             elif 301 <= wykryte_hz <= 450:
                 if wykryte_hz < 360:
                     zwierze = FONETYCZNY_BARAN
@@ -329,19 +321,13 @@ def sekcja_tlumacza():
                     komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wyć i daj psu dojść do głosu!"
                     naglowek_ekranu = "[Wykryto Samicę - Tryb Krowy]"
                 final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
-
-            # PRIORYTET 3: ZAKŁÓCENIA OTOCZENIA (Powyżej 3000 Hz)
             elif wykryte_hz > 3000:
                 final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
                 naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
-
-            # PRIORYTET 4: SKRAJNY ALERT NISKIEJ CZĘSTOTLIWOŚCI
             elif wykryte_hz <= 150:
                 final_tekst = "Wykryto nienaturalnie niski pomruk lub uderzenie powietrza w mikrofon. Spróbuj nagrać czysty dźwięk z odległości 30 cm."
                 naglowek_ekranu = "[🚨 ALERT NISKIEJ CZĘSTOTLIWOŚCI]"
                 tryb_alarmu = True
-
-            # PRIORYTET 5: STANDARDOWY TRYB PSA (Po przejściu testu dynamiki impulsowej)
             else:
                 if 450 < wykryte_hz < 550 and not (is_morning or is_evening or is_night):
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
@@ -442,7 +428,7 @@ def sekcja_bloga():
         Człowiek rejestruje dźwięki w granicach od 20 do 20 000 Hz. Wszystko poniżej i powyżej tej granicy 
         pozostaje dla nas kompletną ciszą. Jednak dla reszty planety ta "cisza" to tętniący życiem kanał informacyjny.</p>
         <p>Zrozumienie częstotliwości pozwala całkowicie zmienić nasz stosunek do otaczającego nas świata. 
-        Zwierzęta, rośliny, a nawet mikroorganizmy nieustannie nadają i odbierają sygnały falowe. 
+        Zwierzęta, rośliny, a even mikroorganizmy nieustannie nadają i odbierają sygnały falowe. 
         Wibracja to pierwotna forma komunikacji w kosmosie.</p>
     </div>
     """, unsafe_allow_html=True)
