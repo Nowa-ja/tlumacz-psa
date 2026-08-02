@@ -459,7 +459,7 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
     
-        # POST 2
+    # POST 2 (Naprawione wcięcie - przesunięte w lewo, równo z POST 1)
     st.markdown("""
     <div class='blog-card'>
         <h3>🌱 Post #2: Czy rośliny mają uszy? Jak zieleń reaguje na wibracje</h3>
@@ -473,6 +473,7 @@ def sekcja_bloga():
     """, unsafe_allow_html=True)
 
 # ==================== NAVIGATION / NAWIGACJA STRONY (PASEK BOCZNY) ====================
+# Te cztery linie poniżej MUSZĄ dotykać lewej krawędzi pliku (zero spacji z przodu)
 st.sidebar.title("🐾 Menu Główne")
 wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)"])
 
@@ -480,5 +481,3 @@ if wybór == "🐕 HauTłumacz":
     sekcja_tlumacza()
 elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
-
-
