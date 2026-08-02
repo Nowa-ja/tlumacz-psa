@@ -7,7 +7,7 @@ import numpy as np
 from gtts import gTTS
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v10.4", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauHau.online PRO v10.4", page_icon="🐕", layout="centered")
 
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state:
