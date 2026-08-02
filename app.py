@@ -360,7 +360,7 @@ def sekcja_tlumacza():
 # ==================== NOWA SEKCJA: ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
     """Tutaj tworzysz swoje posty o fascynującym świecie częstotliwości"""
-    st.title("🌐 Encyklopedia Częstotliwości Hz")
+    st.title("🌐 Encyklopedia Częstotliwości Hz czyli komunikowanie się świata przyrody")
     st.write("Odkryj niewidzialny i niesłyszalny świat wibracji, który rządzi życiem na Ziemi.")
     st.write("---")
     
