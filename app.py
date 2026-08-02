@@ -324,9 +324,9 @@ def sekcja_tlumacza():
                     naglowek_ekranu = "[Wykryto Samca]"
                 else:
                     zwierze = FONETYCHNA_KROWA
-                    komentarz = "Wykryto dźwięki z zagrody! Posłuchaj koleżanki z łąki, przestań wyć i daj psu dojść do głosu!"
+                    komentarz = "Wykryto dźwięki z zagrody! Przestań wyć i daj psu dojść do głosu!"
                     naglowek_ekranu = "[Wykryto Samicę]"
-                final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę człowieka! {komentarz}"
+                final_tekst = f"{zwierze} Nie mogę przetłumaczyć tego dźwięku, bo zamiast psa wyraźnie słyszę barana! {komentarz}"
             elif wykryte_hz > 3000:
                 final_tekst = "Słyszę tylko szum tła, odgłosy ulicy lub samochód. Poczekaj na ciszę i pozwól zaszczekać psu!"
                 naglowek_ekranu = "[⚠️ Zakłócenia Otoczenia]"
