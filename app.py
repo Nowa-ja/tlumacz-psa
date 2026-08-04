@@ -7,7 +7,7 @@ import numpy as np
 from gtts import gTTS
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v12.1", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v12.2", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
 st.markdown("""
@@ -121,7 +121,7 @@ TEKSTY_WARCZENIE_ALARM = [
 GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wychodzić, ale zastanów się, czy to się spierze.", "Chodź szybko to zobaczysz sąsiadkę bez makijażu!", "Szybko, bo za chwilę mi tyłek rozerwie!", "Pospiesz się, bo narobię ci na środek pokoju!", "Sikać mi się chce, szybko!", "Nie musisz wstawać, wiem gdzie mogę się zrąbać.", "No wstawaj, obiecałem, że wyprowadzę cię na spacer.", "W zdrowym ciele zdrowy duch i ja to popieram.", "Carpe diem - chwytaj smycz!"]
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
-GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
+GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem iOS czymś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
 TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
@@ -195,9 +195,9 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z NAPRAWIONYM FILTREM) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z RYGORYSTYCZNYM FILTREM) ====================
 def sekcja_tlumacza():
-    st.title("🐕 HauTłumacz PRO v12.1")
+    st.title("🐕 HauTłumacz PRO v12.2")
     st.write("---")
     
     # SYSTEMOWE SPRZĘŻENIE Z PROFILAMI PSÓW (RODO)
@@ -239,32 +239,27 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== NAPRAWIONY, ELASTYCZNY BLOK DECYZYJNY HZ ====================
+        # ==================== RYGORYSTYCZNY, ODSEPAROWANY SYSTEM DECYZYJNY HZ ====================
         
-        # 1. FILTR DLA MINIATURKI (Rozszerzony do 2000 Hz dla szczekania)
+        # 1. FILTR DLA MINIATURKI (Akceptuje TYLKO wysokie pasmo: 800 - 2000 Hz)
         if "Miniaturka" in klasa_wybrana:
             styl_glosu = "miniatura"
-            if wykryte_hz < 100 or wykryte_hz > 2000:
-                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo miniaturki! Zmień wybór lub nagraj czystszy dźwięk."
+            if wykryte_hz < 800 or wykryte_hz > 2000:
+                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To pasmo jest zbyt niskie dla miniaturki! Zaznaczono małego psa, a nagrano większego zwierzaka."
                 naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE MINIATURKA]"
                 czy_warczenie = False 
             else:
-                if 100 <= wykryte_hz <= 130:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Stres]"
-                    tryb_alarmu = True
-                elif 131 <= wykryte_hz <= 180:
+                if 800 <= wykryte_hz <= 1000:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Zabawa]"
-                else: # Wysokie szczekanie i lęki (np. Twoje 744 Hz czy 1224 Hz)
+                else:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Komunikat]"
-                    tryb_alarmu = False if wykryte_hz > 300 else True
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
 
-        # 2. FILTR DLA PSA ŚREDNIEGO (Rozszerzony do 1500 Hz dla szczekania)
+        # 2. FILTR DLA PSA ŚREDNIEGO (Akceptuje pasmo: 70 - 950 Hz)
         elif "Średni" in klasa_wybrana:
             styl_glosu = "sredni"
-            if wykryte_hz < 70 or wykryte_hz > 1500:
+            if wykryte_hz < 70 or wykryte_hz > 950:
                 final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo rasy średniej! Spróbuj zmienić wybór guzików."
                 naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE ŚREDNI PIES]"
                 czy_warczenie = False
@@ -276,15 +271,15 @@ def sekcja_tlumacza():
                 elif 96 <= wykryte_hz <= 125:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Zabawa]"
-                else: # Wysokie szczekanie (np. Twoje 695 Hz)
+                else: # Tutaj wpadają Twoje wyniki ok. 740 Hz
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
 
-        # 3. FILTR DLA DUŻEGO PSA (Rozszerzony do 1000 Hz dla szczekania)
+        # 3. FILTR DLA DUŻEGO PSA (Akceptuje TYLKO głębokie pasmo: 40 - 750 Hz)
         elif "Duży" in klasa_wybrana:
             styl_glosu = "duzy"
-            if wykryte_hz < 40 or wykryte_hz > 1000:
-                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo dużego psa! Przełącz zakres."
+            if wykryte_hz < 40 or wykryte_hz > 750:
+                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. Dźwięk jest zbyt wysoki dla dużego psa! Przełącz zakres na mniejszą rasę."
                 naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE DUŻY PIES]"
                 czy_warczenie = False
             else:
@@ -295,9 +290,9 @@ def sekcja_tlumacza():
                 elif 66 <= wykryte_hz <= 85:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Zabawa]"
-                else: # Pasmo szczekania dużego psa
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Komunikat]"
+                else: # Tutaj wpadną Twoje wyniki ok. 740 Hz (Maksymalna skala ekscytacji dużego psa)
+                    final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
         # OSTATECZNY BLOK REAKCJI CZASOWEJ (Gdy wyłączona jest filtracja profilowa)
         if final_tekst == "":
@@ -313,7 +308,7 @@ def sekcja_tlumacza():
                 else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
-        # ==================== GENERATOR LEKTORA Z PITCH SHIFTED AUDIO ====================
+        # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
         fp_raw = io.BytesIO()
@@ -405,7 +400,7 @@ def sekcja_profili():
         if st.button("Zapisz profil psa 💾"):
             if imie:
                 st.session_state.baza_psow[imie] = {
-                    "klasa": klasa,
+                    "klasa": klasas,
                     "wlasciciel": st.session_state.uzytkownik_zalogowany,
                     "posty": []
                 }
