@@ -195,7 +195,7 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z RYGORYSTYCZNYM FILTREM) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z BLOKADĄ LUDZKIEGO WYCIA) ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v12.2")
     st.write("---")
