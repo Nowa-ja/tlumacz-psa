@@ -393,7 +393,7 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== SEKCJA PROFILI PSÓW (NAPRAWIONA LITERÓWKA) ====================
+# ==================== SEKCJA PROFILI PSÓW ====================
 def sekcja_profili():
     st.title("📱 Zarządzanie Psami")
     if not st.session_state.uzytkownik_zalogowany:
@@ -404,7 +404,6 @@ def sekcja_profili():
         klasa = st.selectbox("Klasa wielkości (Zgodna z matrycą Hz oraz tonem lektora):", ["miniaturka", "sredni", "duzy"])
         if st.button("Zapisz profil psa 💾"):
             if imie:
-                # TUTAJ NAPRAWIONO BŁĄD: zmieniono 'klasas' na 'klasa'
                 st.session_state.baza_psow[imie] = {
                     "klasa": klasa,
                     "wlasciciel": st.session_state.uzytkownik_zalogowany,
@@ -427,7 +426,7 @@ def sekcja_profili():
             for post in dane["posty"][-2:]:
                 st.info(post)
 
-# ==================== SEKCJA KOMUNIKATORA (Z OKIENKIEM ZDJĘĆ PSÓW) ====================
+# ==================== SEKCJA KOMUNIKATORA (Z PANELEM FB STORIES) ====================
 def sekcja_komunikatora():
     st.title("💬 Psi Komunikator tekstowy")
     moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
@@ -437,30 +436,21 @@ def sekcja_komunikatora():
     elif not moje_psy:
         st.warning("🔒 Krok 2 - Jesteś zalogowany, ale Twój portfel jest pusty! Przejdź w menu bocznym do zakładki '📱 Profile Psów' i zarejestruj chociaż jednego psa. Komunikator wymaga tożsamości zwierzaka!")
     else:
-        st.success(f"🔓 Witamy w sieci hauhau.online! Rozmawiasz z profilu: {st.session_state.uzytkownik_zalogowany}")
+        st.success(f"🔓 Witamy w sieci hauhau.online! Rozmawiasz z profilu menedżerskiego: {st.session_state.uzytkownik_zalogowany}")
         
         # ------------------------------------------------------------------
-        # 🔥 NOWOŚĆ: OKIENKO ZDJĘĆ I PROFILI PSÓW DOSTĘPNYCH W SIECI (STYL FB / MESSENGER)
+        # Dynamiczne okienko dostępnych psów w stylu Facebook Messenger
         # ------------------------------------------------------------------
         st.write("🟢 **Dostępne psy w sieci hauhau.online:**")
-        
-        # Tworzymy dynamiczną liczbę kolumn w zależności od tego, ile psów jest w bazie
         liczba_psow = len(st.session_state.baza_psow)
         if liczba_psow > 0:
-            kolumny_avatarow = st.columns(min(liczba_psow, 6)) # Max 6 avatarów w jednym rzędzie
-            
+            kolumny_avatarow = st.columns(min(liczba_psow, 6))
             for i, (imie_psa, dane_psa) in enumerate(st.session_state.baza_psow.items()):
-                # Przypisujemy odpowiednią ikonę w zależności od gabarytu psa
-                if dane_psa["klasa"] == "miniaturka":
-                    avatar = "🐶"
-                elif dane_psa["klasa"] == "sredni":
-                    avatar = "🐕"
-                else:
-                    avatar = "🦮"
+                if dane_psa["klasa"] == "miniaturka": avatar = "🐶"
+                elif dane_psa["klasa"] == "sredni": avatar = "🐕"
+                else: avatar = "🦮"
                 
-                # Wyświetlamy każdego psa w osobnej małej kolumnie (efekt kółek znajomych z FB)
                 with kolumny_avatarow[i % 6]:
-                    # Generujemy ładny wizualnie, okrągły mini-profil w HTML/CSS
                     st.markdown(f"""
                     <div style="text-align: center; margin-bottom: 15px;">
                         <div style="
@@ -487,11 +477,10 @@ def sekcja_komunikatora():
                                 border: 2px solid white;
                             "></span>
                         </div>
-                        <p style="margin-top: 5px; font-weight: bold; font-size: 14px; color: #1e4620;">{imie_psa}</p>
+                        <p style="margin-top: 5px; font-weight: bold; font-size: 14px; color: #1e4620; margin-bottom: 0;">{imie_psa}</p>
                     </div>
                     """, unsafe_allow_html=True)
         st.write("---")
-        # ------------------------------------------------------------------
         
         nadawca = st.selectbox("Mów w imieniu psa:", moje_psy)
         odbiorcy = [imie for imie in st.session_state.baza_psow.keys() if imie != nadawca]
@@ -505,11 +494,11 @@ def sekcja_komunikatora():
             col1, col2, col3 = st.columns(3)
             szablon = ""
             with col1:
-                if st.button("🦴 Daj gryza parówki"): szablon = "*Macha energicznie ogonem i patrzy na Twoją miskę* Dasz gryza?"
+                if st.button("Bone"): szablon = "*Macha energicznie ogonem i patrzy na Twoją miskę* Dasz gryza?"
             with col2:
-                if st.button("🌳 Spacer po krzakach"): szablon = "Hau! Idziemy sprawdzić zapachy na wybiegu przy bloku?"
+                if st.button("Tree"): szablon = "Hau! Idziemy sprawdzić zapachy na wybiegu przy bloku?"
             with col3:
-                if st.button("😡 Wrrr! Mój teren"): szablon = "*Warczy i stawia sierść* Nie podchodź do mojego człowieka, to mój rewir!"
+                if st.button("Angry"): szablon = "*Warczy i stawia sierść* Nie podchodź do mojego człowieka, to mój rewir!"
 
             wiadomosc = st.text_input("Napisz coś od siebie...", value=szablon)
             if st.button("Wyślij szczeknięcie 🚀"):
@@ -531,7 +520,6 @@ def sekcja_komunikatora():
                         <b>{msg['od']} ➡️ {msg['do']}:</b> {msg['tekst']} <span style='float:right; font-size:10px; color:gray;'>{msg['czas']}</span>
                     </div>
                     """, unsafe_allow_html=True)
-
 
 # ==================== BEZPIECZNE STRUKTURY LOGOWANIA W SIDEBARZE (RODO) ====================
 st.sidebar.title("🔐 Autoryzacja RODO")
@@ -555,7 +543,7 @@ else:
     st.sidebar.warning("Musisz zaznaczyć RODO, aby odblokować logowanie.")
 
 # ==================== NAVIGATION / NAWIGACJA (PASEK BOCZNY) ====================
-st.sidebar.title("🐾 Nawigacja")
+st.sidebar.title("🐾 Nawigacja") 
 wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "📱 Profile Psów", "💬 Psi Komunikator", "🌐 Encyklopedia Hz (Blog)"])
 
 if wybór == "🐕 HauTłumacz":
