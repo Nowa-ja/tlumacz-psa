@@ -195,7 +195,7 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z BLOKADĄ LUDZKIEGO WYCIA) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z USZCZELNIONĄ BLOKADĄ) ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v12.2")
     st.write("---")
@@ -241,9 +241,9 @@ def sekcja_tlumacza():
 
         # ==================== RYGORYSTYCZNY, ODSEPAROWANY SYSTEM DECYZYJNY HZ ====================
         
-        # BEZWZGLĘDNA BLOKADA LUDZKIEGO WYCIA I BEŁKOTU (TWOJE PRZYWRÓCONE FILTRY)
-        if not czy_warczenie and wykryte_hz < 450:
-            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia. Przestań wyć jak człowiek i pozwól dojść psu do głosu! 🐕"
+        # UTWARDZONA BLOKADA GATUNKOWA - Odcina ludzkie wycie poniżej 450 Hz, jeśli dźwięk nie ma dynamiki psa
+        if wykryte_hz < 450 and not czy_to_pies:
+            final_tekst = "Wykryty dźwięk nie posiada wybuchowej dynamiki ani struktury psiego szczekania/warczenia. Przestań wyć jak człowiek i pozwól dojść psu do głosu! 🐕"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             czy_warczenie = False
 
@@ -363,10 +363,9 @@ def sekcja_tlumacza():
     if st.button("📝 Regulamin strony"):
         st.info("""
         **Regulamin i informacje o serwisie hauhau.online**
-        Drogi użytkowniku. Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności.
-        - Dane profili psów oraz historia wiadomości są przechowywane tymczasowo w ramach bieżącej sesji przeglądarki.
-        - Zgodnie z RODO, w każdej chwili możesz użyć przycisku 'Usuń moje konto' w panelu bocznym, aby całkowicie i bezpowrotnie wymazać wszystkie dane swoje oraz swoich czworonogów.
+        Drogi użytkowniku. Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online”...
         """)
+
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
     st.title("🌐 Encyklopedia Częstotliwości Hz")
