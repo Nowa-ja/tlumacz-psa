@@ -241,8 +241,14 @@ def sekcja_tlumacza():
 
         # ==================== RYGORYSTYCZNY, ODSEPAROWANY SYSTEM DECYZYJNY HZ ====================
         
+        # BEZWZGLĘDNA BLOKADA LUDZKIEGO WYCIA I BEŁKOTU (TWOJE PRZYWRÓCONE FILTRY)
+        if not czy_warczenie and wykryte_hz < 450:
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia. Przestań wyć jak człowiek i pozwól dojść psu do głosu! 🐕"
+            naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
+            czy_warczenie = False
+
         # 1. FILTR DLA MINIATURKI (Akceptuje TYLKO wysokie pasmo: 800 - 2000 Hz)
-        if "Miniaturka" in klasa_wybrana:
+        elif "Miniaturka" in klasa_wybrana:
             styl_glosu = "miniatura"
             if wykryte_hz < 800 or wykryte_hz > 2000:
                 final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To pasmo jest zbyt niskie dla miniaturki! Zaznaczono małego psa, a nagrano większego zwierzaka."
@@ -271,7 +277,7 @@ def sekcja_tlumacza():
                 elif 96 <= wykryte_hz <= 125:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Zabawa]"
-                else: # Tutaj wpadają Twoje wyniki ok. 740 Hz
+                else: 
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
 
@@ -290,7 +296,7 @@ def sekcja_tlumacza():
                 elif 66 <= wykryte_hz <= 85:
                     final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Zabawa]"
-                else: # Tutaj wpadną Twoje wyniki ok. 740 Hz (Maksymalna skala ekscytacji dużego psa)
+                else: 
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
