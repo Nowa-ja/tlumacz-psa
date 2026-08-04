@@ -393,19 +393,20 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== NOWA SEKCJA: ZARZĄDZANIE PROFILAMI ====================
+# ==================== SEKCJA PROFILI PSÓW (NAPRAWIONA LITERÓWKA) ====================
 def sekcja_profili():
     st.title("📱 Zarządzanie Psami")
     if not st.session_state.uzytkownik_zalogowany:
-        st.warning("🔒 Musisz najpierw zalogować się w panelu bocznym (podając maila i akceptując RODO), aby zarządzać profilami!")
+        st.warning("🔒 Aby stworzyć profil psa, najpierw przejdź do lewego panelu bocznego, zaznacz okienko RODO i zaloguj się swoim mailem!")
     else:
         st.subheader("➕ Stwórz profil dla swojego pupila")
         imie = st.text_input("Imię psa:")
         klasa = st.selectbox("Klasa wielkości (Zgodna z matrycą Hz oraz tonem lektora):", ["miniaturka", "sredni", "duzy"])
         if st.button("Zapisz profil psa 💾"):
             if imie:
+                # TUTAJ NAPRAWIONO BŁĄD: zmieniono 'klasas' na 'klasa'
                 st.session_state.baza_psow[imie] = {
-                    "klasa": klasas,
+                    "klasa": klasa,
                     "wlasciciel": st.session_state.uzytkownik_zalogowany,
                     "posty": []
                 }
@@ -426,19 +427,22 @@ def sekcja_profili():
             for post in dane["posty"][-2:]:
                 st.info(post)
 
-# ==================== NOWA SEKCJA: PSI KOMUNIKATOR ====================
+# ==================== SEKCJA KOMUNIKATORA ====================
 def sekcja_komunikatora():
     st.title("💬 Psi Komunikator tekstowy")
     moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
     
-    if not st.session_state.uzytkownik_zalogowany or not moje_psy:
-        st.warning("🔒 Aby wejść do komunikatora, musisz być zalogowany i posiadać zarejestrowanego przynajmniej jednego psa!")
+    if not st.session_state.uzytkownik_zalogowany:
+        st.error("🔒 SYSTEM ZABLOKOWANY: Krok 1 - Przejdź do lewego panelu bocznego, zaznacz zgodę RODO i wpisz swój adres e-mail, aby zalogować się jako Menedżer.")
+    elif not moje_psy:
+        st.warning("🔒 Krok 2 - Jesteś zalogowany, ale Twój portfel jest pusty! Przejdź w menu bocznym do zakładki '📱 Profile Psów' i zarejestruj chociaż jednego psa. Komunikator wymaga tożsamości zwierzaka!")
     else:
+        st.success(f"🔓 Witamy w sieci hauhau.online! Rozmawiasz z profilu menedżerskiego: {st.session_state.uzytkownik_zalogowany}")
         nadawca = st.selectbox("Mów w imieniu psa:", moje_psy)
         odbiorcy = [imie for imie in st.session_state.baza_psow.keys() if imie != nadawca]
         
         if not odbiorcy:
-            st.info("Na razie jesteś jedynym psem w sieci. Poczekaj na innych użytkowników!")
+            st.info("Na razie jesteś jedynym zarejestrowanym psem w sieci. Poczekaj na innych użytkowników lub przejdź do zakładki 'Profile Psów' i stwórz drugiego psa z innego maila do testów!")
         else:
             odbiorca = st.selectbox("Wybierz psa do rozmowy:", odbiorcy)
             
@@ -506,3 +510,4 @@ elif wybór == "💬 Psi Komunikator":
     sekcja_komunikatora()
 elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
+
