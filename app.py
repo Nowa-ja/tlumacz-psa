@@ -358,13 +358,30 @@ def sekcja_tlumacza():
                 st.session_state.baza_psow[wybrany_pies]["posty"].append(f"{naglowek_ekranu}: {final_tekst}")
                 st.success("Dodano pomyślnie na psią tablicę!")
 
-    # --- TWOJA STOPKA Z PEŁNYM REGULAMINEM ---
+    # --- TWÓJ ORYGINALNY, PEŁNY REGULAMIN STRONY (NIEUCIĘTY) ---
     st.write("---")
     if st.button("📝 Regulamin strony"):
         st.info("""
         **Regulamin i informacje o serwisie hauhau.online**
-        Drogi użytkowniku. Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online”...
+        
+        Drogi użytkowniku.
+        Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
+        
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+        
+        **Zasady korzystania z profili i komunikatora:**
+        - System posiada dodatkowe moduły kont społecznościowych, które wymagają podania i weryfikacji adresu e-mail oraz numeru telefonu w celu zapewnienia bezpieczeństwa społeczności.
+        - Dane te są przetwarzane tymczasowo. Zgodnie z RODO, w każdej chwili możesz kliknąć czerwony przycisk „Usuń moje konto” w panelu bocznym, aby bezpowrotnie wymazać wszelkie dane swoje oraz swoich psów z pamięci systemu.
+        - Na platformie obowiązuje bezwzględny zakaz publikowania treści nielegalnych, handlu substancjami zakazanymi oraz używania wulgaryzmów. Konta naruszające ten punkt będą natychmiastowo blokowane, a ich dane (w tym numer telefonu i IP) mogą zostać przekazane organom ścigania.
+        
+        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
+        
+        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
+        
+        Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
+
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
