@@ -7,7 +7,7 @@ import numpy as np
 from gtts import gTTS
 
 # --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v12.0", page_icon="🐕", layout="centered")
+st.set_page_config(page_title="HauTłumacz PRO v12.1", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
 st.markdown("""
@@ -100,11 +100,11 @@ if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
 if "uzytkownik_zalogowany" not in st.session_state: st.session_state.uzytkownik_zalogowany = None
 
-# Lokalna baza danych w pamięci podręcznej podróżująca między zakładkami
+# Lokalna baza danych w pamięci sesji (zastępuje serwer SQL w Streamlicie)
 if "baza_psow" not in st.session_state:
     st.session_state.baza_psow = {
-        "Burek": {"klasa": "duzy", "wlasciciel": "przyklad@hauhau.online", "posty": ["[🥳 ZABAWA]: Dawaj parówkę albo sam sobie wezmę!"]},
-        "Chrupek": {"klasa": "miniaturka", "wlasciciel": "test@hauhau.online", "posty": ["[😨 STRACH]: Jestem małym, wściekłym demonem!"]}
+        "Burek": {"klasa": "duzy", "wlasciciel": "przyklad@hauhau.online", "posty": ["[🥳 WYNIK]: Dawaj parówkę albo sam sobie weznę!"]},
+        "Chrupek": {"klasa": "miniaturka", "wlasciciel": "test@hauhau.online", "posty": ["[😨 WYNIK]: Jestem małym, wściekłym demonem!"]}
     }
 if "baza_wiadomosci" not in st.session_state:
     st.session_state.baza_wiadomosci = []
@@ -131,11 +131,10 @@ TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
 
-# NOWE BAZY SPECJALISTYCZNE POD TWOJE 3 SYSTEMOWE EMOCJE
-TEKSTY_ZAGROZENIE_NOWE = ["Zatrzymaj się. To mój teren i moje zasady.", "Widzę każdy twój ruch. Nie podchodź bliżej.", "Moje warczenie to nie zabawa. Odsuń się powoli."]
-TEKSTY_STRACH_NOWE = ["Boję się tego hałasu, schowaj mnie!", "Jestem zaniepokojony, uratuj mnie człowieku!", "Serce mi bije jak szalone, czuję lęk."]
+FONETYCZNY_BARAN = "Bęęęęęę!"
+FONETYCHNA_KROWA = "Móóóóóó!"
 
-# --- TWOJA STRUMIENIOWA ANALIZA AUDIO (FFT) ---
+# --- STRUMIENIOWA ANALIZA AUDIO (FFT) ---
 def analizuj_audio(audio_bytes):
     try:
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
@@ -155,14 +154,18 @@ def analizuj_audio(audio_bytes):
         
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
+        
         magnituda = np.abs(fft_spectrum)
         szczytowa_indeks = np.argmax(magnituda)
         wykryte = freq[szczytowa_indeks]
         
-        czystosc_tonalna = magnituda[szczytowa_indeks] / (np.mean(magnituda) + 1e-6)
+        srednia_widma = np.mean(magnituda)
+        max_widma = magnituda[szczytowa_indeks]
+        czystosc_tonalna = max_widma / (srednia_widma + 1e-6)
         
         czy_warczenie = False
         calkowita_energia = np.sum(magnituda)
+        
         if calkowita_energia > 0:
             niskie_pasmo = (freq >= 40) & (freq <= 300)
             energia_basu = np.sum(magnituda[niskie_pasmo])
@@ -182,7 +185,8 @@ def analizuj_audio(audio_bytes):
 def pobierz_tekst_kontekstowy(baza):
     dostepne = [t for t in baza if t not in st.session_state.wykorzystane_teksty]
     if not dostepne:
-        st.session_state.wykorzystane_teksty.clear()
+        for t in baza:
+            st.session_state.wykorzystane_teksty.discard(t)
         dostepne = baza
     bezpieczne = [t for t in dostepne if t != st.session_state.ostatni_tekst]
     if not bezpieczne:
@@ -191,15 +195,15 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z GUZIKAMI GRUP) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z NAPRAWIONYM FILTREM) ====================
 def sekcja_tlumacza():
-    st.title("🐕 HauTłumacz PRO v11.0")
+    st.title("🐕 HauTłumacz PRO v12.1")
     st.write("---")
     
     # SYSTEMOWE SPRZĘŻENIE Z PROFILAMI PSÓW (RODO)
     moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
     
-    # 1. KROK: WYBÓR KLASY GABARYTOWEJ (TWOJA NOWA FILTRACJA PASMOWA)
+    # WYBÓR KLASY GABARYTOWEJ (GUZICZKI FILTRACJI PASMOWEJ)
     st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
     klasa_wybrana = st.radio(
         "Wielkość psa:",
@@ -235,69 +239,67 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== PROFILOWANY BLOK FILTRACJI KRZYŻOWEJ HZ ====================
+        # ==================== NAPRAWIONY, ELASTYCZNY BLOK DECYZYJNY HZ ====================
         
-        # 1. FILTR DLA MINIATURKI
+        # 1. FILTR DLA MINIATURKI (Rozszerzony do 2000 Hz dla szczekania)
         if "Miniaturka" in klasa_wybrana:
             styl_glosu = "miniatura"
-            if wykryte_hz < 100 or wykryte_hz > 300:
-                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo miniaturki! Zaznaczono małego psa, a zarejestrowany dźwięk pochodzi od większego zwierzęcia lub tła."
+            if wykryte_hz < 100 or wykryte_hz > 2000:
+                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo miniaturki! Zmień wybór lub nagraj czystszy dźwięk."
                 naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE MINIATURKA]"
                 czy_warczenie = False 
             else:
                 if 100 <= wykryte_hz <= 130:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM) + " (Stres / Zagrożenie)"
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Stres]"
                     tryb_alarmu = True
                 elif 131 <= wykryte_hz <= 180:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK) + " (Rozbawienie)"
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Zabawa]"
-                elif wykryte_hz > 180:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE) + " (Strach / Lęk)"
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Strach]"
-                    tryb_alarmu = True
+                else: # Wysokie szczekanie i lęki (np. Twoje 744 Hz czy 1224 Hz)
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Komunikat]"
+                    tryb_alarmu = False if wykryte_hz > 300 else True
 
-        # 2. FILTR DLA PSA ŚREDNIEGO
+        # 2. FILTR DLA PSA ŚREDNIEGO (Rozszerzony do 1500 Hz dla szczekania)
         elif "Średni" in klasa_wybrana:
             styl_glosu = "sredni"
-            if wykryte_hz < 70 or wykryte_hz > 180:
-                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo rasy średniej! Spróbuj zmienić wybór guzików na inną klasę gabarytową."
+            if wykryte_hz < 70 or wykryte_hz > 1500:
+                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo rasy średniej! Spróbuj zmienić wybór guzików."
                 naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE ŚREDNI PIES]"
                 czy_warczenie = False
             else:
                 if 70 <= wykryte_hz <= 95:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM) + " (Stres / Zagrożenie)"
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Stres]"
                     tryb_alarmu = True
                 elif 96 <= wykryte_hz <= 125:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE) + " (Rozbawienie)"
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Zabawa]"
-                elif wykryte_hz > 125:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE) + " (Strach / Lęk)"
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Strach]"
-                    tryb_alarmu = True
+                else: # Wysokie szczekanie (np. Twoje 695 Hz)
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
 
-        # 3. FILTR DLA DUŻEGO PSA
+        # 3. FILTR DLA DUŻEGO PSA (Rozszerzony do 1000 Hz dla szczekania)
         elif "Duży" in klasa_wybrana:
             styl_glosu = "duzy"
-            if wykryte_hz < 40 or wykryte_hz > 130:
-                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest głęboki pomruk dużego psa! Przełącz zakres na mniejszą rasę."
+            if wykryte_hz < 40 or wykryte_hz > 1000:
+                final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo dużego psa! Przełącz zakres."
                 naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE DUŻY PIES]"
                 czy_warczenie = False
             else:
                 if 45 <= wykryte_hz <= 65:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM) + " (Stres / Zagrożenie)"
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Stres]"
                     tryb_alarmu = True
                 elif 66 <= wykryte_hz <= 85:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA) + " (Rozbawienie)"
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Zabawa]"
-                elif wykryte_hz > 85:
-                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE) + " (Strach / Lęk)"
-                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Strach]"
-                    tryb_alarmu = True
+                else: # Pasmo szczekania dużego psa
+                    final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
+                    naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Komunikat]"
 
-        # OSTATECZNY BLOK REAKCJI CZASOWEJ (Twoje dzienne/poranne bazy tekstowe)
+        # OSTATECZNY BLOK REAKCJI CZASOWEJ (Gdy wyłączona jest filtracja profilowa)
         if final_tekst == "":
             if not czy_to_pies:
                 final_tekst = "Wykryty dźwięk nie posiada wybuchowej dynamiki psiego szczekania. Spróbuj zaszczekać wyraźniej!"
@@ -311,7 +313,7 @@ def sekcja_tlumacza():
                 else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
-        # ==================== TWÓJ MODYFIKATOR PITCH GENERATORA LEKTORA ====================
+        # ==================== GENERATOR LEKTORA Z PITCH SHIFTED AUDIO ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
         fp_raw = io.BytesIO()
@@ -350,18 +352,19 @@ def sekcja_tlumacza():
             else:
                 st.success(f"{naglowek_ekranu}: {final_tekst}")
                 
-        if wybrany_pies and final_tekst != "":
+        if wybrany_pies and final_tekst != "" and "[⚠️" not in naglowek_ekranu:
             if st.button("📱 Udostępnij to szczeknięcie na profilu psa"):
                 st.session_state.baza_psow[wybrany_pies]["posty"].append(f"{naglowek_ekranu}: {final_tekst}")
                 st.success("Dodano pomyślnie na psią tablicę!")
 
-    # --- TWOJA STOPKA Z REGULAMINEM ---
+    # --- TWOJA STOPKA Z PEŁNYM REGULAMINEM ---
     st.write("---")
     if st.button("📝 Regulamin strony"):
         st.info("""
         **Regulamin i informacje o serwisie hauhau.online**
-        Drogi użytkowniku. Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online”...
-        Dane profili i wiadomości są przetwarzane tymczasowo. Zgodnie z RODO możesz w każdej chwili usunąć konto panelem bocznym.
+        Drogi użytkowniku. Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności.
+        - Dane profili psów oraz historia wiadomości są przechowywane tymczasowo w ramach bieżącej sesji przeglądarki.
+        - Zgodnie z RODO, w każdej chwili możesz użyć przycisku 'Usuń moje konto' w panelu bocznym, aby całkowicie i bezpowrotnie wymazać wszystkie dane swoje oraz swoich czworonogów.
         """)
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
