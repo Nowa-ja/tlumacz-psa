@@ -410,9 +410,14 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== SEKCJA PROFILI PSÓW ====================
+# ==================== SEKCJA PROFILI PSÓW (Z SYSTEMEM ZGŁOŚ) ====================
 def sekcja_profili():
     st.title("📱 Zarządzanie Psami")
+    
+    # Inicjalizacja bazy zgłoszeń w pamięci podręcznej serwera
+    if "baza_zgloszen" not in st.session_state:
+        st.session_state.baza_zgloszen = set()
+
     if not st.session_state.uzytkownik_zalogowany:
         st.warning("🔒 Aby stworzyć profil psa, najpierw przejdź do lewego panelu bocznego, zaznacz okienko RODO i zaloguj się swoim mailem!")
     else:
@@ -431,19 +436,32 @@ def sekcja_profili():
 
     st.write("---")
     st.subheader("🐾 Aktywne profile w sieci:")
+    
     for imie, dane in st.session_state.baza_psow.items():
+        is_reported = imie in st.session_state.baza_zgloszen
+        button_key = f"report_{imie}"
+        
         st.markdown(f"""
-        <div class='dog-profile-card'>
-            <h4>🐕 {imie} (Klasa: {dane['klasa'].upper()})</h4>
+        <div class='dog-profile-card' style='position: relative; border-left: 6px solid {"#d32f2f" if is_reported else "#81c784"};'>
+            <h4>🐕 {imie} (Klasa: {dane['klasa'].upper()}) {"⚠️ PROFIL ZGŁOSZONY" if is_reported else ""}</h4>
             <p><b>Właściciel / Menedżer konta:</b> {dane['wlasciciel']}</p>
         </div>
         """, unsafe_allow_html=True)
-        if dane["posty"]:
+        
+        # Wyświetlamy przycisk zgłoszenia tylko dla psów należących do obcych kont
+        if dane["wlasciciel"] != st.session_state.uzytkownik_zalogowany and not is_reported:
+            if st.button(f"⚠️ ZGŁOŚ PROFIL {imie.upper()}", key=button_key):
+                st.session_state.baza_zgloszen.add(imie)
+                st.warning(f"Dziękujemy. Profil psa {imie} został zgłoszony do weryfikacji antyprzestępczej. Administrator został powiadomiony.")
+                st.rerun()
+                
+        if dane["posty"] and not is_reported:
             st.write("📌 *Ostatnie udostępnione tłumaczenia na tablicy:*")
             for post in dane["posty"][-2:]:
                 st.info(post)
 
-# ==================== SEKCJA KOMUNIKATORA (Z PANELEM FB STORIES) ====================
+
+# ==================== SEKCJA KOMUNIKATORA (Z PANELEM AWATARÓW ONLINE) ====================
 def sekcja_komunikatora():
     st.title("💬 Psi Komunikator tekstowy")
     moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
@@ -459,10 +477,14 @@ def sekcja_komunikatora():
         # Dynamiczne okienko dostępnych psów w stylu Facebook Messenger
         # ------------------------------------------------------------------
         st.write("🟢 **Dostępne psy w sieci hauhau.online:**")
-        liczba_psow = len(st.session_state.baza_psow)
+        
+        # Filtrujemy bazę, usuwając z paska Messenger zgłoszone profile dilerów
+        baza_czysta = {k: v for k, v in st.session_state.baza_psow.items() if k not in st.session_state.get("baza_zgloszen", set())}
+        liczba_psow = len(baza_czysta)
+        
         if liczba_psow > 0:
             kolumny_avatarow = st.columns(min(liczba_psow, 6))
-            for i, (imie_psa, dane_psa) in enumerate(st.session_state.baza_psow.items()):
+            for i, (imie_psa, dane_psa) in enumerate(baza_czysta.items()):
                 if dane_psa["klasa"] == "miniaturka": avatar = "🐶"
                 elif dane_psa["klasa"] == "sredni": avatar = "🐕"
                 else: avatar = "🦮"
@@ -500,10 +522,10 @@ def sekcja_komunikatora():
         st.write("---")
         
         nadawca = st.selectbox("Mów w imieniu psa:", moje_psy)
-        odbiorcy = [imie for imie in st.session_state.baza_psow.keys() if imie != nadawca]
+        odbiorcy = [imie for imie in baza_czysta.keys() if imie != nadawca]
         
         if not odbiorcy:
-            st.info("Na razie jesteś jedynym zarejestrowanym psem w sieci. Poczekaj na innych użytkowników lub przejdź do zakładki 'Profile Psów' i stwórz drugiego psa z innego maila do testów!")
+            st.info("Na razie jesteś jedynym bezpiecznym psem w sieci. Poczekaj na innych użytkowników!")
         else:
             odbiorca = st.selectbox("Wybierz psa do rozmowy:", odbiorcy)
             
@@ -511,11 +533,11 @@ def sekcja_komunikatora():
             col1, col2, col3 = st.columns(3)
             szablon = ""
             with col1:
-                if st.button("Bone"): szablon = "*Macha energicznie ogonem i patrzy na Twoją miskę* Dasz gryza?"
+                if st.button("🦴 Daj gryza parówki"): szablon = "*Macha energicznie ogonem i patrzy na Twoją miskę* Dasz gryza?"
             with col2:
-                if st.button("Tree"): szablon = "Hau! Idziemy sprawdzić zapachy na wybiegu przy bloku?"
+                if st.button("🌳 Spacer po krzakach"): szablon = "Hau! Idziemy sprawdzić zapachy na wybiegu przy bloku?"
             with col3:
-                if st.button("Angry"): szablon = "*Warczy i stawia sierść* Nie podchodź do mojego człowieka, to mój rewir!"
+                if st.button("😡 Wrrr! Mój teren"): szablon = "*Warczy i stawia sierść* Nie podchodź do mojego człowieka, to mój rewir!"
 
             wiadomosc = st.text_input("Napisz coś od siebie...", value=szablon)
             if st.button("Wyślij szczeknięcie 🚀"):
@@ -531,6 +553,9 @@ def sekcja_komunikatora():
             st.write("---")
             st.subheader("📥 Psia skrzynka odbiorcza")
             for msg in st.session_state.baza_wiadomosci:
+                # Ukrywamy wiadomości na czacie, jeśli którykolwiek z psów został zgłoszony
+                if msg["od"] in st.session_state.get("baza_zgloszen", set()) or msg["do"] in st.session_state.get("baza_zgloszen", set()):
+                    continue
                 if (msg["od"] == nadawca and msg["do"] == odbiorca) or (msg["od"] == odbiorca and msg["do"] == nadawca):
                     st.markdown(f"""
                     <div class='chat-bubble'>
@@ -560,7 +585,7 @@ else:
     st.sidebar.warning("Musisz zaznaczyć RODO, aby odblokować logowanie.")
 
 # ==================== NAVIGATION / NAWIGACJA (PASEK BOCZNY) ====================
-st.sidebar.title("🐾 Nawigacja") 
+st.sidebar.title("🐾 Nawigacja")
 wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "📱 Profile Psów", "💬 Psi Komunikator", "🌐 Encyklopedia Hz (Blog)"])
 
 if wybór == "🐕 HauTłumacz":
@@ -571,4 +596,5 @@ elif wybór == "💬 Psi Komunikator":
     sekcja_komunikatora()
 elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
+
 
