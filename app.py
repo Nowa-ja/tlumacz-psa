@@ -427,7 +427,7 @@ def sekcja_profili():
             for post in dane["posty"][-2:]:
                 st.info(post)
 
-# ==================== SEKCJA KOMUNIKATORA ====================
+# ==================== SEKCJA KOMUNIKATORA (Z OKIENKIEM ZDJĘĆ PSÓW) ====================
 def sekcja_komunikatora():
     st.title("💬 Psi Komunikator tekstowy")
     moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
@@ -437,7 +437,62 @@ def sekcja_komunikatora():
     elif not moje_psy:
         st.warning("🔒 Krok 2 - Jesteś zalogowany, ale Twój portfel jest pusty! Przejdź w menu bocznym do zakładki '📱 Profile Psów' i zarejestruj chociaż jednego psa. Komunikator wymaga tożsamości zwierzaka!")
     else:
-        st.success(f"🔓 Witamy w sieci hauhau.online! Rozmawiasz z profilu menedżerskiego: {st.session_state.uzytkownik_zalogowany}")
+        st.success(f"🔓 Witamy w sieci hauhau.online! Rozmawiasz z profilu: {st.session_state.uzytkownik_zalogowany}")
+        
+        # ------------------------------------------------------------------
+        # 🔥 NOWOŚĆ: OKIENKO ZDJĘĆ I PROFILI PSÓW DOSTĘPNYCH W SIECI (STYL FB / MESSENGER)
+        # ------------------------------------------------------------------
+        st.write("🟢 **Dostępne psy w sieci hauhau.online:**")
+        
+        # Tworzymy dynamiczną liczbę kolumn w zależności od tego, ile psów jest w bazie
+        liczba_psow = len(st.session_state.baza_psow)
+        if liczba_psow > 0:
+            kolumny_avatarow = st.columns(min(liczba_psow, 6)) # Max 6 avatarów w jednym rzędzie
+            
+            for i, (imie_psa, dane_psa) in enumerate(st.session_state.baza_psow.items()):
+                # Przypisujemy odpowiednią ikonę w zależności od gabarytu psa
+                if dane_psa["klasa"] == "miniaturka":
+                    avatar = "🐶"
+                elif dane_psa["klasa"] == "sredni":
+                    avatar = "🐕"
+                else:
+                    avatar = "🦮"
+                
+                # Wyświetlamy każdego psa w osobnej małej kolumnie (efekt kółek znajomych z FB)
+                with kolumny_avatarow[i % 6]:
+                    # Generujemy ładny wizualnie, okrągły mini-profil w HTML/CSS
+                    st.markdown(f"""
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div style="
+                            width: 60px; 
+                            height: 60px; 
+                            border-radius: 50%; 
+                            background-color: #81c784; 
+                            font-size: 32px; 
+                            line-height: 60px; 
+                            margin: 0 auto;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                            border: 3px solid #fff;
+                            position: relative;
+                        ">
+                            {avatar}
+                            <span style="
+                                width: 12px; 
+                                height: 12px; 
+                                background-color: #4caf50; 
+                                border-radius: 50%; 
+                                position: absolute; 
+                                bottom: 2px; 
+                                right: 2px; 
+                                border: 2px solid white;
+                            "></span>
+                        </div>
+                        <p style="margin-top: 5px; font-weight: bold; font-size: 14px; color: #1e4620;">{imie_psa}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+        st.write("---")
+        # ------------------------------------------------------------------
+        
         nadawca = st.selectbox("Mów w imieniu psa:", moje_psy)
         odbiorcy = [imie for imie in st.session_state.baza_psow.keys() if imie != nadawca]
         
@@ -476,6 +531,7 @@ def sekcja_komunikatora():
                         <b>{msg['od']} ➡️ {msg['do']}:</b> {msg['tekst']} <span style='float:right; font-size:10px; color:gray;'>{msg['czas']}</span>
                     </div>
                     """, unsafe_allow_html=True)
+
 
 # ==================== BEZPIECZNE STRUKTURY LOGOWANIA W SIDEBARZE (RODO) ====================
 st.sidebar.title("🔐 Autoryzacja RODO")
