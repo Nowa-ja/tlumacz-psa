@@ -2,12 +2,12 @@ import streamlit as st
 import io
 import random
 from datetime import datetime, time
-from scipy.io import wavfile
+import soundfile as sf
 import numpy as np
 from gtts import gTTS
 
-# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.0) ---
-st.set_page_config(page_title="HauTłumacz PRO v13.0", page_icon="🐕", layout="centered")
+# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.1) ---
+st.set_page_config(page_title="HauTłumacz PRO v13.1", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
 st.markdown("""
@@ -79,7 +79,7 @@ GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wy
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
 GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
-GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
+GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
 TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
 
@@ -94,6 +94,7 @@ FONETYCHNA_KROWA = "Móóóóóó!"
 # --- STRUMIENIOWA ANALIZA AUDIO (FFT) ---
 def analizuj_audio(audio_bytes):
     try:
+        from scipy.io import wavfile
         sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
             data = data.mean(axis=1)
@@ -152,9 +153,9 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (USZCZELNIONA BIOLOGICZNIE) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (ULTRASZYBKI SILNIK RAM PITCH SHIFT) ====================
 def sekcja_tlumacza():
-    st.title("🐕 HauTłumacz PRO v13.0")
+    st.title("🐕 HauTłumacz PRO v13.1")
     st.write("---")
     
     if "licznik_tlumaczen" not in st.session_state:
@@ -164,7 +165,7 @@ def sekcja_tlumacza():
     st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
     klasa_wybrana = st.radio(
         "Wielkość psa:",
-        ["Miniaturka ()", "Średni ()", "Duży ()"],
+        ["Miniaturka (np. York, Maltańczyk)", "Średni (np. Beagle, Border Collie)", "Duży (np. Owczarek, Rottweiler)"],
         horizontal=True
     )
     
@@ -180,7 +181,10 @@ def sekcja_tlumacza():
         final_tekst = ""
         naglowek_ekranu = ""
         tryb_alarmu = False
-        styl_glosu = "sredni"  
+        
+        if "Miniaturka" in klasa_wybrana: styl_glosu = "miniatura"
+        elif "Średni" in klasa_wybrana: styl_glosu = "sredni"
+        else: styl_glosu = "duzy"
         
         is_morning = time(4, 30) <= teraz < time(7, 0)
         is_pre_noon = time(7, 0) <= teraz < time(11, 0)
@@ -192,51 +196,42 @@ def sekcja_tlumacza():
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
         # ==================== TWARDE FILTRY BIOLOGICZNE (BLOKADA LUDZKICH IMITACJI) ====================
-        
-        # 1. JEŚLI WYBRANO MINIATURKĘ
-        if "Miniaturka" in klasa_wybrana:
-            styl_glosu = "miniatura"
-            if wykryte_hz < 800 or wykryte_hz > 2000:
-                final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
-                naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
-                czy_warczenie = False
+        if "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
+            final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
+            naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
+            czy_warczenie = False
+        elif "Średni" in klasa_wybrana and (wykryte_hz < 70 or wykryte_hz > 1500 or (126 <= wykryte_hz < 450 and not czy_to_pies)):
+            final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
+            naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
+            czy_warczenie = False
+        elif "Duży" in klasa_wybrana and (wykryte_hz < 40 or wykryte_hz > 750 or (wykryte_hz < 450 and not czy_to_pies and not czy_warczenie)):
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
+            naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
+        else:
+            st.session_state.licznik_tlumaczen += 1
+            krok = st.session_state.licznik_tlumaczen
+
+            # ==================== INTELIGENTNY SCENARIUSZ NA PIERWSZE 5 URUCHOMIEŃ ====================
+            if krok <= 5:
+                czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
+                if krok == 1: final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
+                elif krok == 2: final_tekst = "Nie proś mnie na sucho... Ale ok, za parówkę mogę przemówić!" if czy_to_czlowiek_mowi else "Ale ok, za parówkę mogę przemówić!"
+                elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
+                elif krok == 4: final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
+                elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
+                naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
+                if krok == 4: tryb_alarmu = True
+
+            # ==================== AUTOMATYCZNY DETEKTOR HZ (OD 6. KLIKNIĘCIA) ====================
             else:
-                st.session_state.licznik_tlumaczen += 1
-                krok = st.session_state.licznik_tlumaczen
-                if krok <= 5:
-                    if krok == 1: final_tekst = "A co to dziś wigilia, że mam przemówić?"
-                    elif krok == 2: final_tekst = "Ale ok, za parówkę mogę przemówić!"
-                    elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
-                    elif krok == 4: final_tekst = "Ciii... sąsiad ma skitrany najlepszy towar!"
-                    elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
-                    naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
-                else:
+                if "Miniaturka" in klasa_wybrana:
                     if 800 <= wykryte_hz <= 1000:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Zabawa]"
                     else:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
-
-        # 2. JEŚLI WYBRANO PSA ŚREDNIEGO
-        elif "Średni" in klasa_wybrana:
-            styl_glosu = "sredni"
-            if wykryte_hz < 70 or wykryte_hz > 1500 or (126 <= wykryte_hz < 450 and not czy_to_pies):
-                final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
-                naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
-                czy_warczenie = False
-            else:
-                st.session_state.licznik_tlumaczen += 1
-                krok = st.session_state.licznik_tlumaczen
-                if krok <= 5:
-                    czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
-                    if krok == 1: final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
-                    elif krok == 2: final_tekst = "Nie proś mnie na sucho... Ale ok, za parówkę mogę przemówić!" if czy_to_czlowiek_mowi else "Ale ok, za parówkę mogę przemówić!"
-                    elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
-                    elif krok == 4: final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
-                    elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
-                    naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
-                else:
+                elif "Średni" in klasa_wybrana:
                     if 70 <= wykryte_hz <= 95:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Stres]"
@@ -247,25 +242,7 @@ def sekcja_tlumacza():
                     else: 
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
-
-        # 3. JEŚLI WYBRANO DUŻEGO PSA
-        elif "Duży" in klasa_wybrana:
-            styl_glosu = "duzy"
-            if wykryte_hz < 40 or wykryte_hz > 750 or (wykryte_hz < 450 and not czy_to_pies and not czy_warczenie):
-                final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
-                naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
-            else:
-                st.session_state.licznik_tlumaczen += 1
-                krok = st.session_state.licznik_tlumaczen
-                if krok <= 5:
-                    if krok == 1: final_tekst = "A co to dziś wigilia, że mam przemówić?"
-                    elif krok == 2: final_tekst = "Ale ok, za parówkę mogę przemówić!"
-                    elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
-                    elif krok == 4: final_tekst = "Ciii... sąsiad ma skitrany najlepszy towar!"
-                    elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
-                    naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
-                    if krok == 4: tryb_alarmu = True
-                else:
+                elif "Duży" in klasa_wybrana:
                     if 45 <= wykryte_hz <= 65:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Stres]"
@@ -277,7 +254,6 @@ def sekcja_tlumacza():
                         final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
-        # OSTATECZNY BLOK CZASOWY
         if final_tekst == "":
             if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
             elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
@@ -287,38 +263,42 @@ def sekcja_tlumacza():
             else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
             naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
-        # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA ====================
+        # ==================== PRZEŁOMOWY PROCES PITCH SHIFT W RAM (BEZ FFMPEG) ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
-        fp_raw = io.BytesIO()
-        tts.write_to_fp(fp_raw)
-        fp_raw.seek(0)
+        mp3_fp = io.BytesIO()
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
         
         try:
-            sample_rate, data = wavfile.read(fp_raw)
+            # soundfile odczytuje plik MP3 w locie jako czystą matrycę numeryczną
+            data_audio, sample_rate = sf.read(mp3_fp)
+            
+            # Modyfikacja prędkości odtwarzania w locie (tempo)
             mnoznik_predkosci = 1.30 if tryb_alarmu else 1.15
-            if styl_glosu in ["maly", "miniatura"]: mnoznik_predkosci = 1.25
+            if styl_glosu == "miniatura": mnoznik_predkosci = 1.25
             
-            skurczony_rozmiar = int(len(data) / mnoznik_predkosci)
-            indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
-            przyspieszone_data = data[indeksy]
+            skurczony_rozmiar = int(len(data_audio) / mnoznik_predkosci)
+            indeksy = np.round(np.linspace(0, len(data_audio) - 1, skurczony_rozmiar)).astype(int)
+            przyspieszone_data = data_audio[indeksy]
             
-            if styl_glosu == "duzy": sample_rate = int(sample_rate * 0.82)  
-            elif styl_glosu in ["maly", "sredni"]: sample_rate = int(sample_rate * 1.10)  
-            elif styl_glosu == "miniatura": sample_rate = int(sample_rate * 1.30)  
+            # BEZPOŚREDNIE PRZEKODOWANIE HERCOW (PITCH SHIFT)
+            if styl_glosu == "duzy": sample_rate = int(sample_rate * 0.78)  # Potężny bas
+            elif styl_glosu == "miniatura": sample_rate = int(sample_rate * 1.35)  # Kreskówkowy pisk
+            elif styl_glosu == "sredni": sample_rate = int(sample_rate * 1.05)
                 
             fp = io.BytesIO()
-            wavfile.write(fp, sample_rate, przyspieszone_data)
+            sf.write(fp, przyspieszone_data, sample_rate, format='WAV')
             fp.seek(0)
         except:
-            fp = fp_raw
+            fp = mp3_fp
         
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
         col1, col2 = st.columns(2)
         with col1:
             st.write("🔊 **Odtwórz głosowo:**")
-            st.audio(fp, format="audio/wav", autoplay=True)
+            st.audio(fp, format="audio/wav" if "try" in locals() else "audio/mp3", autoplay=True)
         with col2:
             st.write("💬 **Tłumaczenie tekstowe:**")
             if tryb_alarmu:
