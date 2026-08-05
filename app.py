@@ -348,7 +348,7 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== SEKCJA PRZYSZŁOŚCI (ZAPOWIEDŹ PREMIERY) ====================
+# ==================== SEKCJA PRZYSZŁOŚCI (POPRAWIONY TEKST BEZ OPAŁAT) ====================
 def sekcja_zapowiedzi():
     st.title("🚀 SEKCJA PRZYSZŁOŚCI")
     st.write("---")
@@ -363,9 +363,8 @@ def sekcja_zapowiedzi():
             💬 ZAKŁADAJ KONTA, WRZUCAJ ZDJĘCIA, ROZMAWIAJ W IMIENIU PSA
         </div>
         <p style="font-size: 15px; font-style: italic; color: #4f6f52; max-width: 600px; margin: 0 auto;">
-            *Podstawowe korzystanie z czatu będzie całkowicie darmowe. Dodatkowe, profesjonalne biblioteki językowe 
-            oraz paczki unikalnych głosów lektora odblokujesz dla swojego psa za symboliczną opłatą (5-10 zł). 
-            Bądź gotowy, dopieszczamy aplikację na tip-top!
+            Szykujemy dla Was mnóstwo niesamowitych niespodzianek, dodatkowych ukrytych funkcji oraz unikalnych trybów głosowych lektora. 
+            Zaznacz tę datę w kalendarzu – dopieszczamy aplikację na absolutny tip-top!
         </p>
     </div>
     """, unsafe_allow_html=True)
