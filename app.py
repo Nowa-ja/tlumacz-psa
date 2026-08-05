@@ -65,7 +65,6 @@ st.markdown("""
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
-
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
@@ -80,7 +79,7 @@ GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wy
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
 GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
-GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
+GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
 TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
 
@@ -153,12 +152,11 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (LOGIKA FILTRÓW I SCENARIUSZA) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (USZCZELNIONA BIOLOGICZNIE) ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.0")
     st.write("---")
     
-    # Inicjalizacja licznika powitalnego w pamięci podręcznej sesji
     if "licznik_tlumaczen" not in st.session_state:
         st.session_state.licznik_tlumaczen = 0
     
@@ -193,119 +191,101 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== TOTALNA BLOKADA GATUNKOWA (FILTR BARANA) ====================
-        # Jeśli wybrano Miniaturkę lub Średniego psa, a dźwięk ma ludzkie, niskie pasmo (poniżej 450 Hz)
-        if wykryte_hz < 450 and ("Miniaturka" in klasa_wybrana or "Średni" in klasa_wybrana):
-            final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
-            naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
-            czy_warczenie = False
-
-        # Jeśli wybrano dużego psa, ale dźwięk nie ma wybuchowej dynamiki (zwykłe ludzkie wycie/mowa)
-        elif wykryte_hz < 450 and "Duży" in klasa_wybrana and not czy_to_pies and not czy_warczenie:
-            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
-            naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
-
-        else:
-            # Dopiero gdy dźwięk przejdzie przez powyższe zapory, zwiększamy licznik show
-            st.session_state.licznik_tlumaczen += 1
-            krok = st.session_state.licznik_tlumaczen
-            # ==================== INTELIGENTNY SCENARIUSZ NA PIERWSZE 5 URUCHOMIEŃ ====================
-            if krok <= 5:
-                czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
-
-                if krok == 1:
-                    if czy_to_czlowiek_mowi:
-                        final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia, że mam przemówić?"
-                    else:
-                        final_tekst = "A co to dziś wigilia, że mam przemówić?"
-                    naglowek_ekranu = "[💥 PIERWSZE URUCHOMIENIE - SZOK]"
-                    styl_glosu = "sredni"
-                    
-                elif krok == 2:
-                    if czy_to_czlowiek_mowi:
-                        final_tekst = "Nie proś mnie tak na sucho... Ale ok, za parówkę mogę przemówić!"
-                    else:
-                        final_tekst = "Ale ok, za parówkę mogę przemówić!"
-                    naglowek_ekranu = "[🍖 NEGOCJACJE JĘZYKOWE]"
-                    styl_glosu = "sredni"
-                    
-                elif krok == 3:
-                    final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
-                    naglowek_ekranu = "[🍻 PSIA TRADYCJA]"
-                    styl_glosu = "sredni"
-                    
-                elif krok == 4:
-                    final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
-                    naglowek_ekranu = "[🤫 TAJEMNICA PODWÓRKA]"
-                    tryb_alarmu = True 
-                    styl_glosu = "duzy"
-                    
-                elif krok == 5:
-                    final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie. Koniec dyskusji!"
-                    naglowek_ekranu = "[🤫 TAJEMNICA PODWÓRKA PART 2]"
-                    styl_glosu = "duzy"
-
-            # ==================== AUTOMATYCZNY DETEKTOR HZ (OD 6. KLIKNIĘCIA) ====================
+        # ==================== TWARDE FILTRY BIOLOGICZNE (BLOKADA LUDZKICH IMITACJI) ====================
+        
+        # 1. JEŚLI WYBRANO MINIATURKĘ
+        if "Miniaturka" in klasa_wybrana:
+            styl_glosu = "miniatura"
+            if wykryte_hz < 800 or wykryte_hz > 2000:
+                final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
+                naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
+                czy_warczenie = False
             else:
-                # 1. FILTR DLA MINIATURKI (800 - 2000 Hz)
-                if "Miniaturka" in klasa_wybrana:
-                    styl_glosu = "miniatura"
-                    if wykryte_hz < 800 or wykryte_hz > 2000:
-                        final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To pasmo jest zbyt niskie dla miniaturki! Spróbuj zmienić wybór."
-                        naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE MINIATURKA]"
+                st.session_state.licznik_tlumaczen += 1
+                krok = st.session_state.licznik_tlumaczen
+                if krok <= 5:
+                    if krok == 1: final_tekst = "A co to dziś wigilia, że mam przemówić?"
+                    elif krok == 2: final_tekst = "Ale ok, za parówkę mogę przemówić!"
+                    elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
+                    elif krok == 4: final_tekst = "Ciii... sąsiad ma skitrany najlepszy towar!"
+                    elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
+                    naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
+                else:
+                    if 800 <= wykryte_hz <= 1000:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Zabawa]"
                     else:
-                        if 800 <= wykryte_hz <= 1000:
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Zabawa]"
-                        else:
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
 
-                # 2. FILTR DLA PSA ŚREDNIEGO (70 - 950 Hz)
-                elif "Średni" in klasa_wybrana:
-                    styl_glosu = "sredni"
-                    if wykryte_hz < 70 or wykryte_hz > 950:
-                        final_tekst = f"Wykryto {int(wykryte_hz)} Hz. To nie jest pasmo rasy średniej!"
-                        naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE ŚREDNI PIES]"
-                    else:
-                        if 70 <= wykryte_hz <= 95:
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Stres]"
-                            tryb_alarmu = True
-                        elif 96 <= wykryte_hz <= 125:
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Zabawa]"
-                        else: 
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
+        # 2. JEŚLI WYBRANO PSA ŚREDNIEGO
+        elif "Średni" in klasa_wybrana:
+            styl_glosu = "sredni"
+            if wykryte_hz < 70 or wykryte_hz > 1500 or (126 <= wykryte_hz < 450 and not czy_to_pies):
+                final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
+                naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
+                czy_warczenie = False
+            else:
+                st.session_state.licznik_tlumaczen += 1
+                krok = st.session_state.licznik_tlumaczen
+                if krok <= 5:
+                    czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
+                    if krok == 1: final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
+                    elif krok == 2: final_tekst = "Nie proś mnie na sucho... Ale ok, za parówkę mogę przemówić!" if czy_to_czlowiek_mowi else "Ale ok, za parówkę mogę przemówić!"
+                    elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
+                    elif krok == 4: final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
+                    elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
+                    naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
+                else:
+                    if 70 <= wykryte_hz <= 95:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Stres]"
+                        tryb_alarmu = True
+                    elif 96 <= wykryte_hz <= 125:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_SREDNI_BEAGLE)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Zabawa]"
+                    else: 
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
 
-                # 3. FILTR DLA DUŻEGO PSA (40 - 750 Hz)
-                elif "Duży" in klasa_wybrana:
-                    styl_glosu = "duzy"
-                    if wykryte_hz < 40 or wykryte_hz > 750:
-                        final_tekst = f"Wykryto {int(wykryte_hz)} Hz. Dźwięk jest zbyt wysoki dla dużego psa!"
-                        naglowek_ekranu = "[⚠️ BŁĄD ZAKRESU - TO NIE DUŻY PIES]"
-                    else:
-                        if 45 <= wykryte_hz <= 65:
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Stres]"
-                            tryb_alarmu = True
-                        elif 66 <= wykryte_hz <= 85:
-                            final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Zabawa]"
-                        else: 
-                            final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                            naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
+        # 3. JEŚLI WYBRANO DUŻEGO PSA
+        elif "Duży" in klasa_wybrana:
+            styl_glosu = "duzy"
+            if wykryte_hz < 40 or wykryte_hz > 750 or (wykryte_hz < 450 and not czy_to_pies and not czy_warczenie):
+                final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
+                naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
+            else:
+                st.session_state.licznik_tlumaczen += 1
+                krok = st.session_state.licznik_tlumaczen
+                if krok <= 5:
+                    if krok == 1: final_tekst = "A co to dziś wigilia, że mam przemówić?"
+                    elif krok == 2: final_tekst = "Ale ok, za parówkę mogę przemówić!"
+                    elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
+                    elif krok == 4: final_tekst = "Ciii... sąsiad ma skitrany najlepszy towar!"
+                    elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
+                    naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
+                    if krok == 4: tryb_alarmu = True
+                else:
+                    if 45 <= wykryte_hz <= 65:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Stres]"
+                        tryb_alarmu = True
+                    elif 66 <= wykryte_hz <= 85:
+                        final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DUZY_OWCHAREK_ZABAWA)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Zabawa]"
+                    else: 
+                        final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+                        naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
-                # OSTATECZNY BLOK REAKCJI CZASOWEJ
-                if final_tekst == "":
-                    if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
-                    elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
-                    elif is_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
-                    elif is_afternoon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
-                    elif is_evening: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
-                    else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
-                    naglowek_ekranu = "[Wynik Analizy Ogólnej]"
+        # OSTATECZNY BLOK CZASOWY
+        if final_tekst == "":
+            if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
+            elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
+            elif is_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POLUDNIOWYCH)
+            elif is_afternoon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
+            elif is_evening: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WIECZORNE)
+            else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
+            naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
         # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
@@ -354,7 +334,7 @@ def sekcja_tlumacza():
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz in celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
