@@ -193,20 +193,20 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== BEZWZGLĘDNA BLOKADA NAŚLADOWANIA PSA (FILTR BARANA) ====================
-        # Jeśli człowiek ordynarnie próbuje naśladować wybuchowe szczekanie w niskim paśmie
-        if 301 <= wykryte_hz <= 450 and czy_to_pies:
+        # ==================== TOTALNA BLOKADA GATUNKOWA (FILTR BARANA) ====================
+        # Jeśli wybrano Miniaturkę lub Średniego psa, a dźwięk ma ludzkie, niskie pasmo (poniżej 450 Hz)
+        if wykryte_hz < 450 and ("Miniaturka" in klasa_wybrana or "Średni" in klasa_wybrana):
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
             naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
             czy_warczenie = False
-            
-        elif wykryte_hz < 300 and not czy_warczenie and not czy_to_pies:
-            # Sytuacja, gdy w tle leci zwykły szum, a nie mowa czy psie dźwięki
-            final_tekst = "Słyszę tylko ludzki szum lub bełkot tła. Poczekaj na czyste, wyraźne szczeknięcie psa!"
-            naglowek_ekranu = "[⚠️ Dźwięk zignorowany]"
+
+        # Jeśli wybrano dużego psa, ale dźwięk nie ma wybuchowej dynamiki (zwykłe ludzkie wycie/mowa)
+        elif wykryte_hz < 450 and "Duży" in klasa_wybrana and not czy_to_pies and not czy_warczenie:
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
+            naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
 
         else:
-            # Zwiększamy licznik kroków scenariusza tylko wtedy, gdy dźwięk przeszedł filtry weryfikacji
+            # Dopiero gdy dźwięk przejdzie przez powyższe zapory, zwiększamy licznik show
             st.session_state.licznik_tlumaczen += 1
             krok = st.session_state.licznik_tlumaczen
             # ==================== INTELIGENTNY SCENARIUSZ NA PIERWSZE 5 URUCHOMIEŃ ====================
@@ -320,7 +320,7 @@ def sekcja_tlumacza():
             if styl_glosu in ["maly", "miniatura"]: mnoznik_predkosci = 1.25
             
             skurczony_rozmiar = int(len(data) / mnoznik_predkosci)
-            indeksy = np.round(np.linspace(0, len(data) - 1, skurczore_rozmiar)).astype(int)
+            indeksy = np.round(np.linspace(0, len(data) - 1, skurczony_rozmiar)).astype(int)
             przyspieszone_data = data[indeksy]
             
             if styl_glosu == "duzy": sample_rate = int(sample_rate * 0.82)  
@@ -354,7 +354,7 @@ def sekcja_tlumacza():
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz in celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
