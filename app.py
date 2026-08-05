@@ -164,7 +164,7 @@ def sekcja_tlumacza():
     st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
     klasa_wybrana = st.radio(
         "Wielkość psa:",
-        ["Miniaturka (np. York, Maltańczyk)", "Średni (np. Beagle, Border Collie)", "Duży (np. Owczarek, Rottweiler)"],
+        ["Miniaturka ()", "Średni ()", "Duży ()"],
         horizontal=True
     )
     
