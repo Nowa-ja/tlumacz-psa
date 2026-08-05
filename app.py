@@ -6,25 +6,20 @@ from scipy.io import wavfile
 import numpy as np
 from gtts import gTTS
 
-# --- BEZPIECZNA KONFIGURACJA STRONY ---
-st.set_page_config(page_title="HauTłumacz PRO v12.2", page_icon="🐕", layout="centered")
+# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.0) ---
+st.set_page_config(page_title="HauTłumacz PRO v13.0", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
 st.markdown("""
     <style>
-    /* Główne tło strony - stonowany, ciemniejszy pastelowy szary/zielony */
     html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { 
         background-color: #e2e8e4 !important; 
     }
-    
-    /* Tło bocznego panelu (Menu) - dopasowane i ciemniejsze */
     [data-testid="stSidebar"] { 
         background-color: #cbd5ce !important; 
     }
-    
     h1, h2, h3 { color: #1e4620 !important; text-align: center; margin-top: 10px; }
     
-    /* POWIĘKSZENIE CAŁEGO WIDŻETU NAGRYWANIA I IKONY MIKROFONU */
     .stAudioInput { 
         border: 3px dashed #81c784 !important; 
         border-radius: 16px; 
@@ -34,19 +29,13 @@ st.markdown("""
         margin: 20px auto !important;
     }
     
-    /* Zwiększenie wewnętrznej ikony mikrofonu */
     .stAudioInput button, .stAudioInput svg, [data-testid="stAudioInput"] svg {
         width: 45px !important;      
         height: 45px !important;     
         transition: transform 0.2s;
     }
-
-    /* Efekt po najechaniu myszką na mikrofon */
-    .stAudioInput button:hover {
-        transform: scale(1.15);
-    }
+    .stAudioInput button:hover { transform: scale(1.15); }
     
-    /* Animacja migającego, czerwonego tła dla niebezpieczeństwa */
     @keyframes pulse-red {
         0% { background-color: rgba(211, 47, 47, 0.1); }
         50% { background-color: rgba(211, 47, 47, 0.3); }
@@ -61,7 +50,6 @@ st.markdown("""
         font-weight: bold;
     }
     
-    /* MATOWE KARTY WPISÓW W ENCYKLOPEDII */
     .blog-card {
         background-color: #d1dad4 !important; 
         padding: 20px;
@@ -71,43 +59,12 @@ st.markdown("""
         border-left: 5px solid #1e4620;
         color: #1e3321 !important; 
     }
-    
-    /* KARTY PROFILI PSA */
-    .dog-profile-card {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 12px;
-        border-left: 6px solid #81c784;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        color: #1e3321;
-    }
-    
-    /* CHMURKI CZATU */
-    .chat-bubble {
-        background-color: #d1dad4;
-        padding: 10px 15px;
-        border-radius: 15px;
-        margin-bottom: 10px;
-        border-bottom-left-radius: 2px;
-        color: #1e3321;
-    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- INICJALIZACJA BAZY SYSTEMU I TRWAŁEJ PAMIĘCI (ZGODNIE Z RODO) ---
+# --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
-if "uzytkownik_zalogowany" not in st.session_state: st.session_state.uzytkownik_zalogowany = None
-
-# Lokalna baza danych w pamięci sesji (zastępuje serwer SQL w Streamlicie)
-if "baza_psow" not in st.session_state:
-    st.session_state.baza_psow = {
-        "Burek": {"klasa": "duzy", "wlasciciel": "przyklad@hauhau.online", "posty": ["[🥳 WYNIK]: Dawaj parówkę albo sam sobie weznę!"]},
-        "Chrupek": {"klasa": "miniaturka", "wlasciciel": "test@hauhau.online", "posty": ["[😨 WYNIK]: Jestem małym, wściekłym demonem!"]}
-    }
-if "baza_wiadomosci" not in st.session_state:
-    st.session_state.baza_wiadomosci = []
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
@@ -121,9 +78,9 @@ TEKSTY_WARCZENIE_ALARM = [
 GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wychodzić, ale zastanów się, czy to się spierze.", "Chodź szybko to zobaczysz sąsiadkę bez makijażu!", "Szybko, bo za chwilę mi tyłek rozerwie!", "Pospiesz się, bo narobię ci na środek pokoju!", "Sikać mi się chce, szybko!", "Nie musisz wstawać, wiem gdzie mogę się zrąbać.", "No wstawaj, obiecałem, że wyprowadzę cię na spacer.", "W zdrowym ciele zdrowy duch i ja to popieram.", "Carpe diem - chwytaj smycz!"]
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
-GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem iOS czymś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
+GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
-TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
+TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma Microsoft coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
 
 TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mięcha!", "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?", "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!", "A teraz rzuć swojską!"]
@@ -195,15 +152,12 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z USZCZELNIONĄ BLOKADĄ) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z FUNKCJĄ ZDJĘCIA I SYSTEMEM ANTY-WYCIE) ====================
 def sekcja_tlumacza():
-    st.title("🐕 HauTłumacz PRO v12.2")
+    st.title("🐕 HauTłumacz PRO v13.0")
     st.write("---")
     
-    # SYSTEMOWE SPRZĘŻENIE Z PROFILAMI PSÓW (RODO)
-    moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
-    
-    # WYBÓR KLASY GABARYTOWEJ (GUZICZKI FILTRACJI PASMOWEJ)
+    # 1. KROK: WYBÓR KLASY GABARYTOWEJ (TWOJA NIEZAWODNA FILTRACJA PASMOWA)
     st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
     klasa_wybrana = st.radio(
         "Wielkość psa:",
@@ -211,13 +165,17 @@ def sekcja_tlumacza():
         horizontal=True
     )
     
-    if st.session_state.uzytkownik_zalogowany and moje_psy:
-        wybrany_pies = st.selectbox("Wybierz profil psa, którego nagrywasz:", moje_psy)
-        st.success(f"Powiązano z psem: {wybrany_pies}")
-    else:
-        wybrany_pies = None
+    # 2. KROK: NOWOŚĆ – UROCZE ZDJĘCIE PUPILA Z GALERII TELEFONU LUB APARATU
+    st.write("---")
+    st.write("### 📸 Krok 2: Wgraj lub zrób zdjęcie swojego psa (Opcjonalnie):")
+    zdjecie_psa = st.file_uploader("Wybierz plik graficzny (JPG, PNG):", type=["jpg", "jpeg", "png"])
+    
+    if zdjecie_psa is not None:
+        # Wyświetlamy zdjęcie na środku ekranu, zaokrąglone i estetycznie dopasowane
+        st.image(zdjecie_psa, caption="Twój zaufany pies gotowy do tłumaczenia!", width=300)
 
     st.write("---")
+    st.write("### 🎤 Krok 3: Nagraj dźwięk psa:")
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
     
     if audio_nagrane is not None:
@@ -241,7 +199,7 @@ def sekcja_tlumacza():
 
         # ==================== RYGORYSTYCZNY, ODSEPAROWANY SYSTEM DECYZYJNY HZ ====================
         
-        # UTWARDZONA BLOKADA GATUNKOWA - Odcina ludzkie wycie poniżej 450 Hz, jeśli dźwięk nie ma dynamiki psa
+        # UTWARDZONA BLOKADA GATUNKOWA - Bezpardonowo odcina ludzkie wycie poniżej 450 Hz
         if wykryte_hz < 450 and not czy_to_pies:
             final_tekst = "Wykryty dźwięk nie posiada wybuchowej dynamiki ani struktury psiego szczekania/warczenia. Przestań wyć jak człowiek i pozwól dojść psu do głosu! 🐕"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
@@ -300,7 +258,7 @@ def sekcja_tlumacza():
                     final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                     naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
-        # OSTATECZNY BLOK REAKCJI CZASOWEJ (Gdy wyłączona jest filtracja profilowa)
+        # OSTATECZNY BLOK REAKCJI CZASOWEJ (Gdy dźwięk jest czystym szczeknięciem ogólnym)
         if final_tekst == "":
             if not czy_to_pies:
                 final_tekst = "Wykryty dźwięk nie posiada wybuchowej dynamiki psiego szczekania. Spróbuj zaszczekać wyraźniej!"
@@ -314,7 +272,7 @@ def sekcja_tlumacza():
                 else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
-        # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA ====================
+        # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA (Z TWOJEGO KODU) ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
         fp_raw = io.BytesIO()
@@ -352,13 +310,8 @@ def sekcja_tlumacza():
                 st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
             else:
                 st.success(f"{naglowek_ekranu}: {final_tekst}")
-                
-        if wybrany_pies and final_tekst != "" and "[⚠️" not in naglowek_ekranu:
-            if st.button("📱 Udostępnij to szczeknięcie na profilu psa"):
-                st.session_state.baza_psow[wybrany_pies]["posty"].append(f"{naglowek_ekranu}: {final_tekst}")
-                st.success("Dodano pomyślnie na psią tablicę!")
 
-    # --- TWÓJ ORYGINALNY, PEŁNY REGULAMIN STRONY (NIEUCIĘTY) ---
+    # --- TWÓJ ORYGINALNY, PEŁNY REGULAMIN STRONY ---
     st.write("---")
     if st.button("📝 Regulamin strony"):
         st.info("""
@@ -367,13 +320,8 @@ def sekcja_tlumacza():
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie are gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
-        
-        **Zasady korzystania z profili i komunikatora:**
-        - System posiada dodatkowe moduły kont społecznościowych, które wymagają podania i weryfikacji adresu e-mail oraz numeru telefonu w celu zapewnienia bezpieczeństwa społeczności.
-        - Dane te są przetwarzane tymczasowo. Zgodnie z RODO, w każdej chwili możesz kliknąć czerwony przycisk „Usuń moje konto” w panelu bocznym, aby bezpowrotnie wymazać wszelkie dane swoje oraz swoich psów z pamięci systemu.
-        - Na platformie obowiązuje bezwzględny zakaz publikowania treści nielegalnych, handlu substancjami zakazanymi oraz używania wulgaryzmów. Konta naruszające ten punkt będą natychmiastowo blokowane, a ich dane (w tym numer telefonu i IP) mogą zostać przekazane organom ścigania.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
         
@@ -381,8 +329,6 @@ def sekcja_tlumacza():
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
-
-
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
     st.title("🌐 Encyklopedia Częstotliwości Hz")
@@ -410,191 +356,35 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== SEKCJA PROFILI PSÓW (Z SYSTEMEM ZGŁOŚ) ====================
-def sekcja_profili():
-    st.title("📱 Zarządzanie Psami")
-    
-    # Inicjalizacja bazy zgłoszeń w pamięci podręcznej serwera
-    if "baza_zgloszen" not in st.session_state:
-        st.session_state.baza_zgloszen = set()
-
-    if not st.session_state.uzytkownik_zalogowany:
-        st.warning("🔒 Aby stworzyć profil psa, najpierw przejdź do lewego panelu bocznego, zaznacz okienko RODO i zaloguj się swoim mailem!")
-    else:
-        st.subheader("➕ Stwórz profil dla swojego pupila")
-        imie = st.text_input("Imię psa:")
-        klasa = st.selectbox("Klasa wielkości (Zgodna z matrycą Hz oraz tonem lektora):", ["miniaturka", "sredni", "duzy"])
-        if st.button("Zapisz profil psa 💾"):
-            if imie:
-                st.session_state.baza_psow[imie] = {
-                    "klasa": klasa,
-                    "wlasciciel": st.session_state.uzytkownik_zalogowany,
-                    "posty": []
-                }
-                st.success(f"Pies {imie} został oficjalnie zarejestrowany w hauhau.online!")
-                st.rerun()
-
+# ==================== TEASER MARKETINGOWY (ZABLOKOWANY CZAT PREMIUM) ====================
+def sekcja_zapowiedzi():
+    st.title("💬 Psi Komunikator – Wielka Premiera")
     st.write("---")
-    st.subheader("🐾 Aktywne profile w sieci:")
-    
-    for imie, dane in st.session_state.baza_psow.items():
-        is_reported = imie in st.session_state.baza_zgloszen
-        button_key = f"report_{imie}"
-        
-        st.markdown(f"""
-        <div class='dog-profile-card' style='position: relative; border-left: 6px solid {"#d32f2f" if is_reported else "#81c784"};'>
-            <h4>🐕 {imie} (Klasa: {dane['klasa'].upper()}) {"⚠️ PROFIL ZGŁOSZONY" if is_reported else ""}</h4>
-            <p><b>Właściciel / Menedżer konta:</b> {dane['wlasciciel']}</p>
+    st.markdown("""
+    <div style="text-align: center; padding: 30px; background-color: #cbd5ce; border-radius: 16px; border: 2px dashed #1e4620;">
+        <h2 style="font-size: 50px;">🔒</h2>
+        <h3 style="color: #1e4620; margin-top: 10px;">Psi Czat rusza już za 14 dni!</h3>
+        <p style="font-size: 16px; color: #2c4c2e; margin: 15px 0;">
+            Tworzymy pierwszy na świecie, w 100% bezpieczny i zweryfikowany komunikator dla czworonogów! 
+            Rozmawiaj ze znajomymi z podwórka bezpośrednio w imieniu swojego psa.
+        </p>
+        <div style="background-color: #1e4620; color: white; padding: 10px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 15px;">
+            🟢 DARMOWA REJESTRACJA PROFILU JUŻ NIEDŁUGO
         </div>
-        """, unsafe_allow_html=True)
-        
-        # Wyświetlamy przycisk zgłoszenia tylko dla psów należących do obcych kont
-        if dane["wlasciciel"] != st.session_state.uzytkownik_zalogowany and not is_reported:
-            if st.button(f"⚠️ ZGŁOŚ PROFIL {imie.upper()}", key=button_key):
-                st.session_state.baza_zgloszen.add(imie)
-                st.warning(f"Dziękujemy. Profil psa {imie} został zgłoszony do weryfikacji antyprzestępczej. Administrator został powiadomiony.")
-                st.rerun()
-                
-        if dane["posty"] and not is_reported:
-            st.write("📌 *Ostatnie udostępnione tłumaczenia na tablicy:*")
-            for post in dane["posty"][-2:]:
-                st.info(post)
+        <p style="font-size: 14px; font-style: italic; color: #4f6f52;">
+            *Podstawowe funkcje komunikatora będą w 100% darmowe. Dedykowane, specjalne biblioteki językowe 
+            oraz paczki unikalnych ludzkich głosów (np. Wściekły Demon, Dystyngowany Lord) odblokujesz na zawsze za symboliczne 5-10 zł!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-
-# ==================== SEKCJA KOMUNIKATORA (Z PANELEM AWATARÓW ONLINE) ====================
-def sekcja_komunikatora():
-    st.title("💬 Psi Komunikator tekstowy")
-    moje_psy = [imie for imie, dane in st.session_state.baza_psow.items() if dane["wlasciciel"] == st.session_state.uzytkownik_zalogowany]
-    
-    if not st.session_state.uzytkownik_zalogowany:
-        st.error("🔒 SYSTEM ZABLOKOWANY: Krok 1 - Przejdź do lewego panelu bocznego, zaznacz zgodę RODO i wpisz swój adres e-mail, aby zalogować się jako Menedżer.")
-    elif not moje_psy:
-        st.warning("🔒 Krok 2 - Jesteś zalogowany, ale Twój portfel jest pusty! Przejdź w menu bocznym do zakładki '📱 Profile Psów' i zarejestruj chociaż jednego psa. Komunikator wymaga tożsamości zwierzaka!")
-    else:
-        st.success(f"🔓 Witamy w sieci hauhau.online! Rozmawiasz z profilu menedżerskiego: {st.session_state.uzytkownik_zalogowany}")
-        
-        # ------------------------------------------------------------------
-        # Dynamiczne okienko dostępnych psów w stylu Facebook Messenger
-        # ------------------------------------------------------------------
-        st.write("🟢 **Dostępne psy w sieci hauhau.online:**")
-        
-        # Filtrujemy bazę, usuwając z paska Messenger zgłoszone profile dilerów
-        baza_czysta = {k: v for k, v in st.session_state.baza_psow.items() if k not in st.session_state.get("baza_zgloszen", set())}
-        liczba_psow = len(baza_czysta)
-        
-        if liczba_psow > 0:
-            kolumny_avatarow = st.columns(min(liczba_psow, 6))
-            for i, (imie_psa, dane_psa) in enumerate(baza_czysta.items()):
-                if dane_psa["klasa"] == "miniaturka": avatar = "🐶"
-                elif dane_psa["klasa"] == "sredni": avatar = "🐕"
-                else: avatar = "🦮"
-                
-                with kolumny_avatarow[i % 6]:
-                    st.markdown(f"""
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div style="
-                            width: 60px; 
-                            height: 60px; 
-                            border-radius: 50%; 
-                            background-color: #81c784; 
-                            font-size: 32px; 
-                            line-height: 60px; 
-                            margin: 0 auto;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                            border: 3px solid #fff;
-                            position: relative;
-                        ">
-                            {avatar}
-                            <span style="
-                                width: 12px; 
-                                height: 12px; 
-                                background-color: #4caf50; 
-                                border-radius: 50%; 
-                                position: absolute; 
-                                bottom: 2px; 
-                                right: 2px; 
-                                border: 2px solid white;
-                            "></span>
-                        </div>
-                        <p style="margin-top: 5px; font-weight: bold; font-size: 14px; color: #1e4620; margin-bottom: 0;">{imie_psa}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-        st.write("---")
-        
-        nadawca = st.selectbox("Mów w imieniu psa:", moje_psy)
-        odbiorcy = [imie for imie in baza_czysta.keys() if imie != nadawca]
-        
-        if not odbiorcy:
-            st.info("Na razie jesteś jedynym bezpiecznym psem w sieci. Poczekaj na innych użytkowników!")
-        else:
-            odbiorca = st.selectbox("Wybierz psa do rozmowy:", odbiorcy)
-            
-            st.write("🐾 **Szybkie, psie zwroty akcji (Szablony z humorem):**")
-            col1, col2, col3 = st.columns(3)
-            szablon = ""
-            with col1:
-                if st.button("🦴 Daj gryza parówki"): szablon = "*Macha energicznie ogonem i patrzy na Twoją miskę* Dasz gryza?"
-            with col2:
-                if st.button("🌳 Spacer po krzakach"): szablon = "Hau! Idziemy sprawdzić zapachy na wybiegu przy bloku?"
-            with col3:
-                if st.button("😡 Wrrr! Mój teren"): szablon = "*Warczy i stawia sierść* Nie podchodź do mojego człowieka, to mój rewir!"
-
-            wiadomosc = st.text_input("Napisz coś od siebie...", value=szablon)
-            if st.button("Wyślij szczeknięcie 🚀"):
-                if wiadomosc:
-                    st.session_state.baza_wiadomosci.append({
-                        "od": nadawca,
-                        "do": odbiorca,
-                        "tekst": wiadomosc,
-                        "czas": datetime.now().strftime("%H:%M")
-                    })
-                    st.rerun()
-
-            st.write("---")
-            st.subheader("📥 Psia skrzynka odbiorcza")
-            for msg in st.session_state.baza_wiadomosci:
-                # Ukrywamy wiadomości na czacie, jeśli którykolwiek z psów został zgłoszony
-                if msg["od"] in st.session_state.get("baza_zgloszen", set()) or msg["do"] in st.session_state.get("baza_zgloszen", set()):
-                    continue
-                if (msg["od"] == nadawca and msg["do"] == odbiorca) or (msg["od"] == odbiorca and msg["do"] == nadawca):
-                    st.markdown(f"""
-                    <div class='chat-bubble'>
-                        <b>{msg['od']} ➡️ {msg['do']}:</b> {msg['tekst']} <span style='float:right; font-size:10px; color:gray;'>{msg['czas']}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-# ==================== BEZPIECZNE STRUKTURY LOGOWANIA W SIDEBARZE (RODO) ====================
-st.sidebar.title("🔐 Autoryzacja RODO")
-if st.sidebar.checkbox("Akceptuję regulamin i przetwarzanie danych (RODO)"):
-    if not st.session_state.uzytkownik_zalogowany:
-        email_input = st.sidebar.text_input("Wpisz swój email:")
-        if st.sidebar.button("Zaloguj się jako Menedżer"):
-            if email_input:
-                st.session_state.uzytkownik_zalogowany = email_input
-                st.rerun()
-    else:
-        st.sidebar.success(f"Zalogowano: {st.session_state.uzytkownik_zalogowany}")
-        if st.sidebar.button("🚨 USUŃ MOJE KONTO (Kaskadowe czyszczenie RODO)"):
-            user = st.session_state.uzytkownik_zalogowany
-            st.session_state.baza_psow = {k: v for k, v in st.session_state.baza_psow.items() if v['wlasciciel'] != user}
-            st.session_state.uzytkownik_zalogowany = None
-            st.sidebar.info("Wszystkie dane osobowe i psie zostały trwale wymazane.")
-            st.rerun()
-else:
-    st.session_state.uzytkownik_zalogowany = None
-    st.sidebar.warning("Musisz zaznaczyć RODO, aby odblokować logowanie.")
-
-# ==================== NAVIGATION / NAWIGACJA (PASEK BOCZNY) ====================
-st.sidebar.title("🐾 Nawigacja")
-wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "📱 Profile Psów", "💬 Psi Komunikator", "🌐 Encyklopedia Hz (Blog)"])
+# ==================== NAVIGATION / NAWIGACJA STRONY (PASEK BOCZNY) ====================
+st.sidebar.title("🐾 Menu Główne")
+wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)", "💬 Psi Komunikator (Premiera!)"])
 
 if wybór == "🐕 HauTłumacz":
     sekcja_tlumacza()
-elif wybór == "📱 Profile Psów":
-    sekcja_profili()
-elif wybór == "💬 Psi Komunikator":
-    sekcja_komunikatora()
 elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
-
-
+elif wybór == "💬 Psi Komunikator (Premiera!)":
+    sekcja_zapowiedzi()
