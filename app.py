@@ -152,7 +152,7 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (Z FUNKCJĄ ZDJĘCIA I SYSTEMEM ANTY-WYCIE) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA (WERSJA MAKSYMALNIE SZYBKA - BEZ ZDJĘCIA) ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.0")
     st.write("---")
@@ -165,17 +165,8 @@ def sekcja_tlumacza():
         horizontal=True
     )
     
-    # 2. KROK: NOWOŚĆ – UROCZE ZDJĘCIE PUPILA Z GALERII TELEFONU LUB APARATU
     st.write("---")
-    st.write("### 📸 Krok 2: Wgraj lub zrób zdjęcie swojego psa (Opcjonalnie):")
-    zdjecie_psa = st.file_uploader("Wybierz plik graficzny (JPG, PNG):", type=["jpg", "jpeg", "png"])
-    
-    if zdjecie_psa is not None:
-        # Wyświetlamy zdjęcie na środku ekranu, zaokrąglone i estetycznie dopasowane
-        st.image(zdjecie_psa, caption="Twój zaufany pies gotowy do tłumaczenia!", width=300)
-
-    st.write("---")
-    st.write("### 🎤 Krok 3: Nagraj dźwięk psa:")
+    st.write("### 🎤 Krok 2: Nagraj dźwięk psa:")
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
     
     if audio_nagrane is not None:
@@ -272,7 +263,7 @@ def sekcja_tlumacza():
                 else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                 naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
-        # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA (Z TWOJEGO KODU) ====================
+        # ==================== MODYFIKATOR PITCH GENERATORA LEKTORA ====================
         tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
         tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
         fp_raw = io.BytesIO()
@@ -320,7 +311,7 @@ def sekcja_tlumacza():
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie are gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
@@ -329,6 +320,7 @@ def sekcja_tlumacza():
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
+
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
     st.title("🌐 Encyklopedia Częstotliwości Hz")
@@ -356,35 +348,35 @@ def sekcja_bloga():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== TEASER MARKETINGOWY (ZABLOKOWANY CZAT PREMIUM) ====================
+# ==================== SEKCJA PRZYSZŁOŚCI (ZAPOWIEDŹ PREMIERY) ====================
 def sekcja_zapowiedzi():
-    st.title("💬 Psi Komunikator – Wielka Premiera")
+    st.title("🚀 SEKCJA PRZYSZŁOŚCI")
     st.write("---")
     st.markdown("""
-    <div style="text-align: center; padding: 30px; background-color: #cbd5ce; border-radius: 16px; border: 2px dashed #1e4620;">
-        <h2 style="font-size: 50px;">🔒</h2>
-        <h3 style="color: #1e4620; margin-top: 10px;">Psi Czat rusza już za 14 dni!</h3>
-        <p style="font-size: 16px; color: #2c4c2e; margin: 15px 0;">
-            Tworzymy pierwszy na świecie, w 100% bezpieczny i zweryfikowany komunikator dla czworonogów! 
-            Rozmawiaj ze znajomymi z podwórka bezpośrednio w imieniu swojego psa.
+    <div style="text-align: center; padding: 40px; background-color: #cbd5ce; border-radius: 16px; border: 3px dashed #1e4620;">
+        <h2 style="font-size: 60px; margin-bottom: 10px;">🔒</h2>
+        <h2 style="color: #1e4620; font-weight: bold; margin-top: 0;">WIELKA PREMIERA: 1.10</h2>
+        <p style="font-size: 18px; color: #2c4c2e; font-weight: bold; margin: 20px 0;">
+            Nadchodzi rewolucja w psiej komunikacji! Już pierwszego października otwieramy bramy pełnego, personalnego Komunikatora dla Twojego pupila.
         </p>
-        <div style="background-color: #1e4620; color: white; padding: 10px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 15px;">
-            🟢 DARMOWA REJESTRACJA PROFILU JUŻ NIEDŁUGO
+        <div style="background-color: #1e4620; color: white; padding: 12px 25px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; font-size: 16px;">
+            💬 ZAKŁADAJ KONTA, WRZUCAJ ZDJĘCIA, ROZMAWIAJ W IMIENIU PSA
         </div>
-        <p style="font-size: 14px; font-style: italic; color: #4f6f52;">
-            *Podstawowe funkcje komunikatora będą w 100% darmowe. Dedykowane, specjalne biblioteki językowe 
-            oraz paczki unikalnych ludzkich głosów (np. Wściekły Demon, Dystyngowany Lord) odblokujesz na zawsze za symboliczne 5-10 zł!
+        <p style="font-size: 15px; font-style: italic; color: #4f6f52; max-width: 600px; margin: 0 auto;">
+            *Podstawowe korzystanie z czatu będzie całkowicie darmowe. Dodatkowe, profesjonalne biblioteki językowe 
+            oraz paczki unikalnych głosów lektora odblokujesz dla swojego psa za symboliczną opłatą (5-10 zł). 
+            Bądź gotowy, dopieszczamy aplikację na tip-top!
         </p>
     </div>
     """, unsafe_allow_html=True)
 
 # ==================== NAVIGATION / NAWIGACJA STRONY (PASEK BOCZNY) ====================
 st.sidebar.title("🐾 Menu Główne")
-wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)", "💬 Psi Komunikator (Premiera!)"])
+wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)", "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)"])
 
 if wybór == "🐕 HauTłumacz":
     sekcja_tlumacza()
 elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
-elif wybór == "💬 Psi Komunikator (Premiera!)":
+elif wybór == "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)":
     sekcja_zapowiedzi()
