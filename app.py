@@ -1,12 +1,12 @@
 import streamlit as st
 import io
 import random
+import os
 from datetime import datetime, time
 import soundfile as sf
 import numpy as np
-from gtts import gTTS
 
-# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.1) ---
+# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.1 - AUDIO FIX) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.1", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
@@ -65,11 +65,12 @@ st.markdown("""
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
+
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
     "Nie podchodź. To nie są żarty, ani zabawa.",
-    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej godowości do ataku.",
+    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej gotowości do ataku.",
     "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.",
     "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.",
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.",
@@ -78,7 +79,7 @@ TEKSTY_WARCZENIE_ALARM = [
 GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wychodzić, ale zastanów się, czy to się spierze.", "Chodź szybko to zobaczysz sąsiadkę bez makijażu!", "Szybko, bo za chwilę mi tyłek rozerwie!", "Pospiesz się, bo narobię ci na środek pokoju!", "Sikać mi się chce, szybko!", "Nie musisz wstawać, wiem gdzie mogę się zrąbać.", "No wstawaj, obiecałem, że wyprowadzę cię na spacer.", "W zdrowym ciele zdrowy duch i ja to popieram.", "Carpe diem - chwytaj smycz!"]
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
-GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
+GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
 TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
@@ -88,8 +89,66 @@ TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
 
-FONETYCZNY_BARAN = "Bęęęęęę!"
-FONETYCHNA_KROWA = "Móóóóóó!"
+# ==================== MAPOWANIE OFICJALNEJ MATRYCY AUDIO HAUHAU.ONLINE ====================
+MAPA_ALARM = {
+    "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
+    "Nie podchodź. To nie są żarty, ani zabawa.": "audio/alarm_nie_podchodz.mp3",
+    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej gotowości do ataku.": "audio/alarm_odsun_sie.mp3",
+    "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.": "audio/alarm_zostaw_mnie.mp3",
+    "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.": "audio/alarm_odejdz.mp3",
+    "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.": "audio/alarm_cofnij_sie.mp3",
+    "Ani kroku dalej. To nie jest żart. Koniec zabawy.": "audio/alarm_ani_kroku.mp3"
+}
+
+MAPA_PORANEK = {
+    "Bieguniem, bieguniem, bo się posikam!": "audio/rano_bieguniem.mp3",
+    "Nie musimy wychodzić, ale zastanów się, czy to się spierze.": "audio/rano_zastanow_sie.mp3",
+    "Chodź szybko to zobaczysz sąsiadkę bez makijażu!": "audio/rano_sasiadka.mp3",
+    "Szybko, bo za chwilę mi tyłek rozerwie!": "audio/rano_tylek.mp3",
+    "Pospiesz się, bo narobię ci na środek pokoju!": "audio/rano_narobie.mp3",
+    "Sikać mi się chce, szybko!": "audio/rano_siki.mp3",
+    "Nie musisz wstawać, wiem gdzie mogę się zrąbać.": "audio/rano_zrabac.mp3",
+    "No wstawaj, obiecałem, że wyprowadzę cię na spacer.": "audio/rano_smycz.mp3",
+    "W zdrowym ciele zdrowy duch i ja to popieram.": "audio/rano_duh.mp3",
+    "Carpe diem - chwytaj smycz!": "audio/rano_carpe.mp3"
+}
+
+MAPA_PRZEDPOLUDNIE = {
+    "No i co ja tak w samotności mam być przez resztę dnia?": "audio/przedpoludnie_samotnosc.mp3",
+    "O której mogę się ciebie spodziewać?": "audio/przedpoludnie_kiedy.mp3",
+    "Nie wpadniesz na przerwę?": "audio/przedpoludnie_przerwa.mp3",
+    "Będzie fajna kość, wpadnij na chwilę.": "audio/przedpoludnie_kosc.mp3",
+    "Weź sobie godzinkę wolnego w pracy.": "audio/przedpoludnie_wolne.mp3",
+    "Oj wpadnij choć na chwilę to dam ci kość!": "audio/przedpoludnie_dam_kosc.mp3",
+    "Nie idź do pracy, pokopmy dołki.": "audio/przedpoludnie_dolki.mp3",
+    "Weź mnie ze sobą, będę pilnować pieniędzy.": "audio/przedpoludnie_pieniadze.mp3"
+}
+
+MAPA_ZABAWA = {
+    "Interesują mnie tylko konkrety - gdzie są parówki?!": "audio/dzien_parowki_gdzie.mp3",
+    "Konkrety to smakołyki.": "audio/dzien_konkrety.mp3",
+    "Jaki patyk? Rzuć mi parówkę!": "audio/dzien_patyk.mp3",
+    "Pobiegamy razem?": "audio/dzien_pobiegamy.mp3",
+    "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!": "audio/dzien_suka.mp3",
+    "Może znów spotkamy tę rudą, jest niezła?!": "audio/dzien_ruda.mp3",
+    "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!": "audio/dzien_sprzatasz.mp3",
+    "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski.": "audio/dzien_miska.mp3"
+}
+
+MAPA_POPO_WIECZOR = {
+    "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.": "audio/popoludnie_koty.mp3",
+    "Już miałem gryźć meble, by nie wyjść z wprawy.": "audio/popoludnie_meble.mp3",
+    "Jeszcze chwila a się sfajdam!": "audio/popoludnie_sfajdam.mp3",
+    "Jeszcze tylko kupkę, śiku i można w kimono!": "audio/wieczor_kimono.mp3",
+    "Zaraz mi pęcherz rozerwie.": "audio/wieczor_pecherz.mp3",
+    "Fundamentalne pytanie brzmi - gdzie mam narobić?": "audio/wieczor_pytanie.mp3",
+    "Wyczułem fajny towar w okolicy - maybe jest singlem?": "audio/wieczor_single.mp3",
+    "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.": "audio/wieczor_bąk.mp3", 
+    "Chodź pokażę ci straszną babę.": "audio/wieczor_baba.mp3",
+    "A wiesz, że sąsiadka ma coś na sumieniu?": "audio/wieczor_sumienie.mp3"
+}
+
+PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR}
 
 # --- STRUMIENIOWA ANALIZA AUDIO (FFT) ---
 def analizuj_audio(audio_bytes):
@@ -153,7 +212,7 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-# ==================== SEKCJA GŁÓWNA TŁUMACZA (ULTRASZYBKI SILNIK RAM PITCH SHIFT) ====================
+# ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.1")
     st.write("---")
@@ -161,7 +220,6 @@ def sekcja_tlumacza():
     if "licznik_tlumaczen" not in st.session_state:
         st.session_state.licznik_tlumaczen = 0
     
-    # KROK 1: INTERFEJS WYBORU GABARYTU PSA
     st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
     klasa_wybrana = st.radio(
         "Wielkość psa:",
@@ -181,10 +239,7 @@ def sekcja_tlumacza():
         final_tekst = ""
         naglowek_ekranu = ""
         tryb_alarmu = False
-        
-        if "Miniaturka" in klasa_wybrana: styl_glosu = "miniatura"
-        elif "Średni" in klasa_wybrana: styl_glosu = "sredni"
-        else: styl_glosu = "duzy"
+        sciezka_audio = ""
         
         is_morning = time(4, 30) <= teraz < time(7, 0)
         is_pre_noon = time(7, 0) <= teraz < time(11, 0)
@@ -195,33 +250,43 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== TWARDE FILTRY BIOLOGICZNE (BLOKADA LUDZKICH IMITACJI) ====================
+        # ==================== TWARDE FILTRY BIOLOGICZNE (ANTY-TROLL) ====================
         if "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
             naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
-            czy_warczenie = False
+            sciezka_audio = "audio/error_baran.mp3"
         elif "Średni" in klasa_wybrana and (wykryte_hz < 70 or wykryte_hz > 1500 or (126 <= wykryte_hz < 450 and not czy_to_pies)):
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
             naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
-            czy_warczenie = False
+            sciezka_audio = "audio/error_baran.mp3"
         elif "Duży" in klasa_wybrana and (wykryte_hz < 40 or wykryte_hz > 750 or (wykryte_hz < 450 and not czy_to_pies and not czy_warczenie)):
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
+            sciezka_audio = "audio/error_belkot.mp3"
         else:
             st.session_state.licznik_tlumaczen += 1
             krok = st.session_state.licznik_tlumaczen
+            czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
 
             # ==================== INTELIGENTNY SCENARIUSZ NA PIERWSZE 5 URUCHOMIEŃ ====================
             if krok <= 5:
-                czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
-                if krok == 1: final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
-                elif krok == 2: final_tekst = "Nie proś mnie na sucho... Ale ok, za parówkę mogę przemówić!" if czy_to_czlowiek_mowi else "Ale ok, za parówkę mogę przemówić!"
-                elif krok == 3: final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
-                elif krok == 4: final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
-                elif krok == 5: final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie."
+                if krok == 1:
+                    final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
+                    sciezka_audio = "audio/krok1_ludzki.mp3" if czy_to_czlowiek_mowi else "audio/krok1.mp3"
+                elif krok == 2:
+                    final_tekst = "Nie proś mnie na sucho... Ale ok, za parówkę mogę przemówić!" if czy_to_czlowiek_mowi else "Ale ok, za parówkę mogę przemówić!"
+                    sciezka_audio = "audio/krok2_ludzki.mp3" if czy_to_czlowiek_mowi else "audio/krok2.mp3"
+                elif krok == 3:
+                    final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
+                    sciezka_audio = "audio/krok3.mp3"
+                elif krok == 4:
+                    final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
+                    sciezka_audio = "audio/krok4.mp3"
+                    tryb_alarmu = True
+                elif krok == 5:
+                    final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie. Koniec dyskusji!"
+                    sciezka_audio = "audio/krok5.mp3"
                 naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
-                if krok == 4: tryb_alarmu = True
-
             # ==================== AUTOMATYCZNY DETEKTOR HZ (OD 6. KLIKNIĘCIA) ====================
             else:
                 if "Miniaturka" in klasa_wybrana:
@@ -263,49 +328,27 @@ def sekcja_tlumacza():
             else: final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
             naglowek_ekranu = "[Wynik Analizy Ogólnej]"
 
-        # ==================== PRZEŁOMOWY PROCES PITCH SHIFT W RAM (BEZ FFMPEG) ====================
-        tekst_do_czytania = final_tekst.replace(".", ",").replace("!", ",")
-        tts = gTTS(text=tekst_do_czytania, lang='pl', slow=False)
-        mp3_fp = io.BytesIO()
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-        
-        try:
-            # soundfile odczytuje plik MP3 w locie jako czystą matrycę numeryczną
-            data_audio, sample_rate = sf.read(mp3_fp)
-            
-            # Modyfikacja prędkości odtwarzania w locie (tempo)
-            mnoznik_predkosci = 1.30 if tryb_alarmu else 1.15
-            if styl_glosu == "miniatura": mnoznik_predkosci = 1.25
-            
-            skurczony_rozmiar = int(len(data_audio) / mnoznik_predkosci)
-            indeksy = np.round(np.linspace(0, len(data_audio) - 1, skurczony_rozmiar)).astype(int)
-            przyspieszone_data = data_audio[indeksy]
-            
-            # BEZPOŚREDNIE PRZEKODOWANIE HERCOW (PITCH SHIFT)
-            if styl_glosu == "duzy": sample_rate = int(sample_rate * 0.78)  # Potężny bas
-            elif styl_glosu == "miniatura": sample_rate = int(sample_rate * 1.35)  # Kreskówkowy pisk
-            elif styl_glosu == "sredni": sample_rate = int(sample_rate * 1.05)
-                
-            fp = io.BytesIO()
-            sf.write(fp, przyspieszone_data, sample_rate, format='WAV')
-            fp.seek(0)
-        except:
-            fp = mp3_fp
-        
+        if not sciezka_audio:
+            sciezka_audio = PELNA_MAPA_AUDIO.get(final_tekst, "audio/dzien_parowki_gdzie.mp3")
+
+        # ==================== INTERFEJS WYNIKOWY I ODTWARZACZ PLIKÓW MP3 ====================
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
         col1, col2 = st.columns(2)
         with col1:
             st.write("🔊 **Odtwórz głosowo:**")
-            st.audio(fp, format="audio/wav" if "try" in locals() else "audio/mp3", autoplay=True)
+            if os.path.exists(sciezka_audio):
+                with open(sciezka_audio, "rb") as f:
+                    st.audio(f.read(), format="audio/mp3", autoplay=True)
+            else:
+                st.warning(f"🐕 Nie znaleziono pliku {sciezka_audio} w folderze /audio.")
         with col2:
             st.write("💬 **Tłumaczenie tekstowe:**")
             if tryb_alarmu:
                 st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
             else:
                 st.success(f"{naglowek_ekranu}: {final_tekst}")
-    # --- TWÓJ ORYGINALNY, PEŁNY REGULAMIN STRONY ---
+                
     st.write("---")
     if st.button("📝 Regulamin strony"):
         st.info("""
@@ -314,8 +357,8 @@ def sekcja_tlumacza():
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
-        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+        - Na stronie hauhau.online nie are gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie are gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
         
@@ -336,22 +379,17 @@ def sekcja_bloga():
         <p>Większość z nas postrzega świat tylko przez to, co widzą ludzkie oczy i słyszą ludzkie uszy. 
         Człowiek rejestruje dźwięki w granicach od 20 do 20 000 Hz. Wszystko poniżej i powyżej tej granicy 
         pozostaje dla nas kompletną ciszą. Jednak dla reszty planety ta "cisza" to tętniący życiem kanał informacyjny.</p>
-        <p>Zrozumienie częstotliwości pozwala całkowicie zmienić nasz stosunek do otaczającego nas świata. 
-        Zwierzęta, rośliny, a nawet mikroorganizmy nieustannie nadają i odbierają sygnały falowe. 
-        Wibracja to pierwotna forma komunikacji w kosmosie.</p>
     </div>
     <div class='blog-card'>
         <h3>🌱 Post #2: Czy rośliny mają uszy? Jak zieleń reaguje na wibracje</h3>
         <p><b>Data publikacji:</b> Dzisiaj | <b>Autor:</b> Tery</p>
         <p>Okazuje się, że flora nie jest ani niema, ani głucha. Najnowsze badania z zakresu bioakustyki dowodzą, 
         że korzenie roślin potrafią zlokalizować podziemne źródła wody, bezbłędnie wychwytując niskie częstotliwości 
-        szumu płynącej cieczy. Co więcej, niektóre kwiaty potrafią w ciągu kilku sekund drastycznie zwiększyć stężenie cukru 
-        w swoim nektarze, gdy tylko zarejestrują częstotliwość machania skrzydeł (Hz) zbliżającej się pszczoły!</p>
-        <p>Świat częstotliwości pokazuje, że życie wokół nas jest o wiele bardziej świadome i połączone, niż nam się wydaje.</p>
+        szumu płynącej cieczy.</p>
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== SEKCJA PRZYSZŁOŚCI (Z TWOIM AUTORSKIM TEKSTEM) ====================
+# ==================== SEKCJA PRZYSZŁOŚCI ====================
 def sekcja_zapowiedzi():
     st.title("🚀 SEKCJA PRZYSZŁOŚCI")
     st.write("---")
@@ -365,13 +403,10 @@ def sekcja_zapowiedzi():
         <div style="background-color: #1e4620; color: white; padding: 12px 25px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; font-size: 16px;">
             💬 ZAKŁADAJ KONTA, WRZUCAJ ZDJĘCIA, ROZMAWIAJ W IMIENIU PSA
         </div>
-        <p style="font-size: 15px; font-style: italic; color: #4f6f52; max-width: 600px; margin: 0 auto;">
-            Szykujemy dla Was mnóstwo niesamowitych niespodzianek, dodatkowych atrakcji jakich na pewno się nie spodziewasz. Dba o to zgrany zespół wariatów :) Zaznacz tę datę w kalendarzu – dopieszczamy aplikację na absolutny tip-top!
-        </p>
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== NAVIGATION / NAWIGACJA STRONY (PASEK BOCZNY) ====================
+# ==================== NAVIGATION / NAWIGACJA STRONY ====================
 st.sidebar.title("🐾 Menu Główne")
 wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)", "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)"])
 
@@ -381,3 +416,4 @@ elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
 elif wybór == "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)":
     sekcja_zapowiedzi()
+
