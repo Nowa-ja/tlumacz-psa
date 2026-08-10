@@ -168,7 +168,7 @@ MAPA_AWANTURA = {
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
 
-## --- STRUMIENIOWA ANALIZA AUDIO (FFT Z FILTREM CHAOSU NA AWANTURĘ) ---
+## --- STRUMIENIOWA ANALIZA AUDIO (WYOSTRZONY DETEKTOR CHAOSU RMS) ---
 def analizuj_audio(audio_bytes):
     try:
         data, sample_rate = sf.read(io.BytesIO(audio_bytes))
@@ -178,6 +178,10 @@ def analizuj_audio(audio_bytes):
             return 600.0, False, False, False
             
         dlugosc_sekundy = len(data) / sample_rate
+        
+        # Obliczamy ogólną głośność nagrania (RMS - Root Mean Square)
+        ogolna_glosnosc = np.sqrt(np.mean(data**2))
+        
         okienko = int(sample_rate * 0.05) 
         energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
         if len(energie_okienek) == 0:
@@ -187,10 +191,10 @@ def analizuj_audio(audio_bytes):
         srednia_energia = np.mean(energie_okienek)
         czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
         
-        # --- FILTR CHAOSU (WYKRYWANIE JEDNOCZESNEGO UJADANIA WIELU PSÓW) ---
-        procent_glosnych_okienek = sum(1 for e in energie_okienek if e > (srednia_energia * 0.5)) / len(energie_okienek)
+        # --- NOWY, ABSOLUTNIE CZUŁY WARUNEK AWANTURY ---
+        # Jeśli nagranie ma ponad 4 sekundy, a ogólna głośność tła przekracza próg hałasu (0.015)
         czy_awantura = False
-        if dlugosc_sekundy >= 5.0 and procent_glosnych_okienek > 0.65:
+        if dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.015:
             czy_awantura = True
         
         fft_spectrum = np.fft.rfft(data)
@@ -236,6 +240,7 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
+
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.1")
