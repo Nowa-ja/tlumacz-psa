@@ -5,6 +5,7 @@ import os
 from datetime import datetime, time
 import soundfile as sf
 import numpy as np
+import streamlit.components.v1 as components
 
 # --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.1 - AUDIO FIX) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.1", page_icon="🐕", layout="centered")
@@ -74,12 +75,12 @@ TEKSTY_WARCZENIE_ALARM = [
     "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.",
     "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.",
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.",
-    "Ani kroku dalej. To nie jest żart. Koniec zabawy."
+    "Ani kroku dalej. To nie jest żart. End of fun."
 ]
 GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wychodzić, ale zastanów się, czy to się spierze.", "Chodź szybko to zobaczysz sąsiadkę bez makijażu!", "Szybko, bo za chwilę mi tyłek rozerwie!", "Pospiesz się, bo narobię ci na środek pokoju!", "Sikać mi się chce, szybko!", "Nie musisz wstawać, wiem gdzie mogę się zrąbać.", "No wstawaj, obiecałem, że wyprowadzę cię na spacer.", "W zdrowym ciele zdrowy duch i ja to popieram.", "Carpe diem - chwytaj smycz!"]
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
-GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
+GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
 GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
 TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
@@ -97,7 +98,7 @@ MAPA_ALARM = {
     "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.": "audio/alarm_zostaw_mnie.mp3",
     "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.": "audio/alarm_odejdz.mp3",
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.": "audio/alarm_cofnij_sie.mp3",
-    "Ani kroku dalej. To nie jest żart. Koniec zabawy.": "audio/alarm_ani_kroku.mp3"
+    "Ani kroku dalej. To nie jest żart. End of fun.": "audio/alarm_ani_kroku.mp3"
 }
 
 MAPA_PORANEK = {
@@ -138,36 +139,59 @@ MAPA_ZABAWA = {
 MAPA_POPO_WIECZOR = {
     "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.": "audio/popoludnie_koty.mp3",
     "Już miałem gryźć meble, by nie wyjść z wprawy.": "audio/popoludnie_meble.mp3",
-    "Jeszcze chwila a się sfajdam!": "audio/popoludnie_sfajdam.mp3",
+    "Jeczcze chwila a się sfajdam!": "audio/popoludnie_sfajdam.mp3",
     "Jeszcze tylko kupkę, śiku i można w kimono!": "audio/wieczor_kimono.mp3",
     "Zaraz mi pęcherz rozerwie.": "audio/wieczor_pecherz.mp3",
     "Fundamentalne pytanie brzmi - gdzie mam narobić?": "audio/wieczor_pytanie.mp3",
     "Wyczułem fajny towar w okolicy - maybe jest singlem?": "audio/wieczor_single.mp3",
-    "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.": "audio/wieczor_bąk.mp3", 
+    "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.": "audio/wieczor_bak.mp3", 
     "Chodź pokażę ci straszną babę.": "audio/wieczor_baba.mp3",
     "A wiesz, że sąsiadka ma coś na sumieniu?": "audio/wieczor_sumienie.mp3"
 }
 
-PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR}
+MAPA_RASOWA = {
+    "Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!": "audio/miniatura_jamnik1.mp3",
+    "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!": "audio/miniatura_jamnik2.mp3",
+    "Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.": "audio/sredni_beagle1.mp3",
+    "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!": "audio/sredni_beagle2.mp3",
+    "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!": "audio/sredni_beagle3.mp3",
+    "Dawaj parówkę albo sam sobie wezmę kawał mięcha!": "audio/duzy_owczarek1.mp3",
+    "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?": "audio/duzy_owczarek2.mp3",
+    "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!": "audio/duzy_owczarek3.mp3",
+    "A teraz rzuć swojską!": "audio/duzy_owczarek4.mp3"
+}
 
-# --- STRUMIENIOWA ANALIZA AUDIO (FFT) ---
+## --- MAPA DLA PSYCHICZNEJ AWANTURY O GARNKI ---
+MAPA_AWANTURA = {
+    "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!": "audio/awantura_garnki.mp3"
+}
+
+PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
+
+## --- STRUMIENIOWA ANALIZA AUDIO (FFT Z FILTREM CHAOSU NA AWANTURĘ) ---
 def analizuj_audio(audio_bytes):
     try:
-        from scipy.io import wavfile
-        sample_rate, data = wavfile.read(io.BytesIO(audio_bytes))
+        data, sample_rate = sf.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
             data = data.mean(axis=1)
         if len(data) == 0:
-            return 600.0, False, False
+            return 600.0, False, False, False
             
+        dlugosc_sekundy = len(data) / sample_rate
         okienko = int(sample_rate * 0.05) 
         energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
         if len(energie_okienek) == 0:
-            return 600.0, False, False
+            return 600.0, False, False, False
             
         max_energia = max(energie_okienek)
         srednia_energia = np.mean(energie_okienek)
         czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
+        
+        # --- FILTR CHAOSU (WYKRYWANIE JEDNOCZESNEGO UJADANIA WIELU PSÓW) ---
+        procent_glosnych_okienek = sum(1 for e in energie_okienek if e > (srednia_energia * 0.5)) / len(energie_okienek)
+        czy_awantura = False
+        if dlugosc_sekundy >= 5.0 and procent_glosnych_okienek > 0.65:
+            czy_awantura = True
         
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
@@ -190,14 +214,14 @@ def analizuj_audio(audio_bytes):
                 czy_warczenie = True
 
         if wykryte < 30 or wykryte > 4000:
-            return 600.0, False, False
+            return 600.0, False, False, czy_awantura
 
         czy_to_melodyjne_miau = czystosc_tonalna > 120.0
         czy_to_pies = czy_warczenie or (czy_impulsowy and not czy_to_melodyjne_miau)
             
-        return float(wykryte), czy_warczenie, czy_to_pies
+        return float(wykryte), czy_warczenie, czy_to_pies, czy_awantura
     except:
-        return 600.0, False, False
+        return 600.0, False, False, False
 
 def pobierz_tekst_kontekstowy(baza):
     dostepne = [t for t in baza if t not in st.session_state.wykorzystane_teksty]
@@ -217,6 +241,21 @@ def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.1")
     st.write("---")
     
+    # --- PROFILOWANIE URZĄDZENIA PRZEZ LOCALSTORAGE ---
+    js_storage = """
+    <script>
+        var statusUzytkownika = localStorage.getItem("hauhau_status_urzadzenia");
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('device') && statusUzytkownika) {
+            window.location.search = window.location.search + (window.location.search ? '&' : '?') + 'device=' + statusUzytkownika;
+        }
+    </script>
+    """
+    components.html(js_storage, height=0, width=0)
+
+    query_params = st.query_params
+    czy_znane_urzadzenie = query_params.get("device") == "stary"
+
     if "licznik_tlumaczen" not in st.session_state:
         st.session_state.licznik_tlumaczen = 0
     
@@ -226,14 +265,13 @@ def sekcja_tlumacza():
         ["Miniaturka (np. York, Maltańczyk)", "Średni (np. Beagle, Border Collie)", "Duży (np. Owczarek, Rottweiler)"],
         horizontal=True
     )
-    
     st.write("---")
     st.write("### 🎤 Krok 2: Nagraj dźwięk psa:")
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
     
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
-        wykryte_hz, czy_warczenie, czy_to_pies = analizuj_audio(audio_bytes)
+        wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura = analizuj_audio(audio_bytes)
         
         teraz = datetime.now().time()
         final_tekst = ""
@@ -250,8 +288,17 @@ def sekcja_tlumacza():
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
 
-        # ==================== TWARDE FILTRY BIOLOGICZNE (ANTY-TROLL) ====================
-        if "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
+        # ==================== CRITICAL FILTERS MATRIX ====================
+
+        # 1. NAJWYŻSZY PRIORYTET: DETEKTOR AWANTURY O GARNKI ZA 8K (ROZŁADOWANIE STRESU)
+        if czy_awantura:
+            final_tekst = "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!"
+            naglowek_ekranu = "[🚨 WYKRYTO DZIKĄ AWANTURĘ PSÓW]"
+            sciezka_audio = "audio/awantura_garnki.mp3"
+            tryb_alarmu = True
+
+        # 2. TWARDE FILTRY BIOLOGICZNE (ANTY-TROLL)
+        elif "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
             naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
             sciezka_audio = "audio/error_baran.mp3"
@@ -263,13 +310,14 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
+        # 3. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
         else:
             st.session_state.licznik_tlumaczen += 1
             krok = st.session_state.licznik_tlumaczen
             czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
 
-            # ==================== INTELIGENTNY SCENARIUSZ NA PIERWSZE 5 URUCHOMIEŃ ====================
-            if krok <= 5:
+            # INTELIGENTNY SCENARIUSZ URZĄDZENIA (Tylko raz na urządzenie)
+            if krok <= 5 and not czy_znane_urzadzenie:
                 if krok == 1:
                     final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
                     sciezka_audio = "audio/krok1_ludzki.mp3" if czy_to_czlowiek_mowi else "audio/krok1.mp3"
@@ -286,9 +334,14 @@ def sekcja_tlumacza():
                 elif krok == 5:
                     final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie. Koniec dyskusji!"
                     sciezka_audio = "audio/krok5.mp3"
+                    components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
                 naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
-            # ==================== AUTOMATYCZNY DETEKTOR HZ (OD 6. KLIKNIĘCIA) ====================
+
+            # AUTOMATYCZNY DETEKTOR HZ (Dla stałych użytkowników)
             else:
+                if czy_znane_urzadzenie:
+                    components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
+
                 if "Miniaturka" in klasa_wybrana:
                     if 800 <= wykryte_hz <= 1000:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
@@ -318,7 +371,6 @@ def sekcja_tlumacza():
                     else: 
                         final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
-
         if final_tekst == "":
             if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
             elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
@@ -357,8 +409,8 @@ def sekcja_tlumacza():
         Drogi użytkowniku.
         Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
         
-        - Na stronie hauhau.online nie are gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
-        - Na stronie hauhau.online nie are gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
         
@@ -416,4 +468,3 @@ elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
 elif wybór == "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)":
     sekcja_zapowiedzi()
-
