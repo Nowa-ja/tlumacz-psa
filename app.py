@@ -7,8 +7,8 @@ import soundfile as sf
 import numpy as np
 import streamlit.components.v1 as components
 
-# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.1 - AUDIO FIX) ---
-st.set_page_config(page_title="HauTłumacz PRO v13.1", page_icon="🐕", layout="centered")
+# --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.2 - STABLE RUN) ---
+st.set_page_config(page_title="HauTłumacz PRO v13.2", page_icon="🐕", layout="centered")
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
 st.markdown("""
@@ -66,9 +66,7 @@ st.markdown("""
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
-# NOWOŚĆ: Ukryta flaga pamiętająca, czy poprzednie nagranie to były garnki
 if "ostatni_byl_alert_garnki" not in st.session_state: st.session_state.ostatni_byl_alert_garnki = False
-
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
@@ -83,15 +81,14 @@ GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wy
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
 GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
-GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeczcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
-TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
+GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeczcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
+TEKSTY_WIECZORNE = ["Jeczcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
 
 TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mięcha!", "Widziałem, jak grdyka ci skacze. Jadłeś i się nie podzieliłeś człowieku?", "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!", "A teraz rzuć swojską!"]
 TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.", "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!", "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"]
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
-
 # ==================== MAPOWANIE OFICJALNEJ MATRYCY AUDIO HAUHAU.ONLINE ====================
 MAPA_ALARM = {
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
@@ -240,25 +237,28 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
+
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
-    st.title("🐕 HauTłumacz PRO v13.1")
+    st.title("🐕 HauTłumacz PRO v13.2")
     st.write("---")
     
-    # --- PROFILOWANIE URZĄDZENIA PRZEZ LOCALSTORAGE ---
+    # --- PROFILOWANIE URZĄDZENIA (ZABEZPIECZONA WERSJA BEZ RE-RENDERU) ---
+    if "czy_znane_urzadzenie" not in st.session_state:
+        st.session_state.czy_znane_urzadzenie = False
+
     js_storage = """
     <script>
         var statusUzytkownika = localStorage.getItem("hauhau_status_urzadzenia");
-        const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.has('device') && statusUzytkownika) {
-            window.location.search = window.location.search + (window.location.search ? '&' : '?') + 'device=' + statusUzytkownika;
+        if (statusUzytkownika === "stary") {
+            window.parent.postMessage({type: 'streamlit:setComponentValue', value: 'stary'}, '*');
         }
     </script>
     """
     components.html(js_storage, height=0, width=0)
 
     query_params = st.query_params
-    czy_znane_urzadzenie = query_params.get("device") == "stary"
+    czy_znane_urzadzenie = (query_params.get("device") == "stary") or st.session_state.czy_znane_urzadzenie
 
     if "licznik_tlumaczen" not in st.session_state:
         st.session_state.licznik_tlumaczen = 0
@@ -297,17 +297,16 @@ def sekcja_tlumacza():
         # 1. NAJWYŻSZY PRIORYTET: SEKWENCJA AWANTURNICZA (GARNKI ZA 8K + KONTYNUACJA O BARANIE)
         if czy_awantura:
             tryb_alarmu = True
-            # Sprawdzamy, czy użytkownik nagrywa drugi raz z rzędu tę samą zadymę
             if st.session_state.ostatni_byl_alert_garnki:
                 final_tekst = "Powtórzcie temu baranowi, że nie chcemy żadnych garnków!"
                 naglowek_ekranu = "[🚨 AWANTURA - CZĘŚĆ II: RIPOSTA]"
                 sciezka_audio = "audio/awantura_baran.mp3"
-                st.session_state.ostatni_byl_alert_garnki = False # Reset flagi
+                st.session_state.ostatni_byl_alert_garnki = False
             else:
                 final_tekst = "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!"
                 naglowek_ekranu = "[🚨 WYKRYTO DZIKĄ AWANTURĘ PSÓW]"
                 sciezka_audio = "audio/awantura_garnki.mp3"
-                st.session_state.ostatni_byl_alert_garnki = True # Ustawienie flagi na kolejny raz
+                st.session_state.ostatni_byl_alert_garnki = True
                 
         # 2. TWARDE FILTRY BIOLOGICZNE (ANTY-TROLL)
         elif "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
