@@ -66,6 +66,8 @@ st.markdown("""
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
+# NOWOŚĆ: Ukryta flaga pamiętająca, czy poprzednie nagranie to były garnki
+if "ostatni_byl_alert_garnki" not in st.session_state: st.session_state.ostatni_byl_alert_garnki = False
 
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
@@ -81,7 +83,7 @@ GRUPA_TEKSTY_PORANNE = ["Bieguniem, bieguniem, bo się posikam!", "Nie musimy wy
 GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH = ["No i co ja tak w samotności mam być przez resztę dnia?", "O której mogę się ciebie spodziewać?", "Nie wpadniesz na przerwę?", "Będzie fajna kość, wpadnij na chwilę.", "Weź sobie godzinkę wolnego w pracy.", "Oj wpadnij choć na chwilę to dam ci kość!", "Nie idź do pracy, pokopmy dołki.", "Weź mnie ze sobą, będę pilnować pieniędzy."]
 TEKSTY_DZIENNE_ZABAWA = ["Interesują mnie tylko konkrety - gdzie są parówki?!", "Konkrety to smakołyki.", "Jaki patyk? Rzuć mi parówkę!", "Pobiegamy razem?", "Wyczuwam tutaj tę sukę i mam nadzieję, że się wytłumaczysz?!", "Może znów spotkamy tę rudą, jest niezła?!", "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!", "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski."]
 GRUPA_TEKSTOW_POLUDNIOWYCH = ["Fajnie, że jesteś w domu, razem coś wymyślimy.", "Ty mi rzucaj smakołyk, a ja będę łapać.", "Jestem gotowy, rzucaj kość.", "Ja nie wiem, jak koty mogą leżeć tak całymi dniiami.", "Rzucaj tę kość, tylko tym razem dobrze!", "Pobiegamy razem?"]
-GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeszcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekawego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
+GRUPA_TEKSTOW_POPOLUDNIOWYCH = ["Tak jak się umawialiśmy - jestem tutaj.", "O której to wracasz?", "Fajnie, że jesteś, ale teraz szybko chodźmy.", "Jeczcze chwila a się sfajdam!", "Chodź szybko na spacer to zobaczysz coś ciekego.", "Już miałem gryźć meble, by nie wyjść z wprawy."]
 TEKSTY_WIECZORNE = ["Jeszcze tylko kupkę, śiku i można w kimono!", "Zaraz mi pęcherz rozerwie.", "Mogę sfajdać się tutaj - nie musimy wychodzić!", "Fundamentalne pytanie brzmi - gdzie mam narobić?", "Wyczułem fajny towar w okolicy - maybe jest singlem?", "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.", "Chodź pokażę ci straszną babę.", "A wiesz, że sąsiadka ma coś na sumieniu?", "Cisza nocna jest od dwudziestej czwartej?"]
 TEKSTY_NOCNE = ["Ludzie! Ludzie! Ludziska!!!", "Ja tutaj strasznie cierpię.", "Ludzie, ja tutaj jestem sam!", "Ludzie, oni mnie straszyli, że będą gwałcić!", "Ludzie, właściciel tego mieszkania ma skitrany gdzieś towar!", "Niech ktoś zadzwoni do opieki nad zwierzętami!", "Ludzie, dajcie mi tutaj kogoś do zabawy.", "Niech mi ktoś pomoże!!!", "Jest tam kto?", "Pomocy! Ludzie, tutaj jakiś szalony pies nawalił i strasznie śmierdzi!!!", "W co ja się wpakowałem...!!!"]
 
@@ -161,9 +163,10 @@ MAPA_RASOWA = {
     "A teraz rzuć swojską!": "audio/duzy_owczarek4.mp3"
 }
 
-## --- MAPA DLA PSYCHICZNEJ AWANTURY O GARNKI ---
+## --- MAPA DLA SERII AWANTURNICZEJ (GARNKI + KONTYNUACJA O BARANIE) ---
 MAPA_AWANTURA = {
-    "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!": "audio/awantura_garnki.mp3"
+    "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!": "audio/awantura_garnki.mp3",
+    "Powtórzcie temu baranowi, że nie chcemy żadnych garnków!": "audio/awantura_baran.mp3"
 }
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
@@ -178,8 +181,6 @@ def analizuj_audio(audio_bytes):
             return 600.0, False, False, False
             
         dlugosc_sekundy = len(data) / sample_rate
-        
-        # Obliczamy ogólną głośność nagrania (RMS - Root Mean Square)
         ogolna_glosnosc = np.sqrt(np.mean(data**2))
         
         okienko = int(sample_rate * 0.05) 
@@ -191,8 +192,7 @@ def analizuj_audio(audio_bytes):
         srednia_energia = np.mean(energie_okienek)
         czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
         
-        # --- NOWY, ABSOLUTNIE CZUŁY WARUNEK AWANTURY ---
-        # Jeśli nagranie ma ponad 4 sekundy, a ogólna głośność tła przekracza próg hałasu (0.015)
+        # --- ABSOLUTNIE CZUŁY WARUNEK AWANTURY ---
         czy_awantura = False
         if dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.015:
             czy_awantura = True
@@ -240,7 +240,6 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.1")
@@ -295,23 +294,34 @@ def sekcja_tlumacza():
 
         # ==================== CRITICAL FILTERS MATRIX ====================
 
-        # 1. NAJWYŻSZY PRIORYTET: DETEKTOR AWANTURY O GARNKI ZA 8K (ROZŁADOWANIE STRESU)
+        # 1. NAJWYŻSZY PRIORYTET: SEKWENCJA AWANTURNICZA (GARNKI ZA 8K + KONTYNUACJA O BARANIE)
         if czy_awantura:
-            final_tekst = "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!"
-            naglowek_ekranu = "[🚨 WYKRYTO DZIKĄ AWANTURĘ PSÓW]"
-            sciezka_audio = "audio/awantura_garnki.mp3"
             tryb_alarmu = True
-
+            # Sprawdzamy, czy użytkownik nagrywa drugi raz z rzędu tę samą zadymę
+            if st.session_state.ostatni_byl_alert_garnki:
+                final_tekst = "Powtórzcie temu baranowi, że nie chcemy żadnych garnków!"
+                naglowek_ekranu = "[🚨 AWANTURA - CZĘŚĆ II: RIPOSTA]"
+                sciezka_audio = "audio/awantura_baran.mp3"
+                st.session_state.ostatni_byl_alert_garnki = False # Reset flagi
+            else:
+                final_tekst = "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!"
+                naglowek_ekranu = "[🚨 WYKRYTO DZIKĄ AWANTURĘ PSÓW]"
+                sciezka_audio = "audio/awantura_garnki.mp3"
+                st.session_state.ostatni_byl_alert_garnki = True # Ustawienie flagi na kolejny raz
+                
         # 2. TWARDE FILTRY BIOLOGICZNE (ANTY-TROLL)
         elif "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
+            st.session_state.ostatni_byl_alert_garnki = False
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
             naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
             sciezka_audio = "audio/error_baran.mp3"
         elif "Średni" in klasa_wybrana and (wykryte_hz < 70 or wykryte_hz > 1500 or (126 <= wykryte_hz < 450 and not czy_to_pies)):
+            st.session_state.ostatni_byl_alert_garnki = False
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
             naglowek_ekranu = "[⚠️ BŁĄD GATUNKOWY - WYKRYTO BARANA]"
             sciezka_audio = "audio/error_baran.mp3"
         elif "Duży" in klasa_wybrana and (wykryte_hz < 40 or wykryte_hz > 750 or (wykryte_hz < 450 and not czy_to_pies and not czy_warczenie)):
+            st.session_state.ostatni_byl_alert_garnki = False
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
@@ -320,6 +330,7 @@ def sekcja_tlumacza():
             st.session_state.licznik_tlumaczen += 1
             krok = st.session_state.licznik_tlumaczen
             czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
+            st.session_state.ostatni_byl_alert_garnki = False
 
             # INTELIGENTNY SCENARIUSZ URZĄDZENIA (Tylko raz na urządzenie)
             if krok <= 5 and not czy_znane_urzadzenie:
@@ -376,6 +387,7 @@ def sekcja_tlumacza():
                     else: 
                         final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
+
         if final_tekst == "":
             if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
             elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
