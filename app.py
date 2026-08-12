@@ -340,7 +340,7 @@ def sekcja_tlumacza():
         # ==================== CRITICAL FILTERS MATRIX ====================
 
         # 🚨 ABSOLUTNY PRIORYTET #1: SYSTEM ANTY-TROLL (Zaczepka człowieka)
-        if "zaszczekaj" in mowa_czlowieka or "no zaszczekaj" in mova_czlowieka:
+        if "zaszczekaj" in mowa_czlowieka or "no zaszczekaj" in mowa_czlowieka:
             final_tekst = "Sam se zaszczekaj!"
             naglowek_ekranu = "[💥 ODPOWIEDŹ PSA - SYSTEM ANTY-TROLL]"
             sciezka_audio = "audio/riposta_zaszczekaj.mp3"
