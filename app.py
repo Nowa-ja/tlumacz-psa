@@ -69,6 +69,7 @@ st.markdown("""
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
 if "ostatni_byl_alert_garnki" not in st.session_state: st.session_state.ostatni_byl_alert_garnki = False
+
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.",
@@ -91,7 +92,6 @@ TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mi�
 TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.", "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!", "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"]
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
-
 # ==================== MAPOWANIE OFICJALNEJ MATRYCY AUDIO HAUHAU.ONLINE ====================
 MAPA_ALARM = {
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
@@ -169,9 +169,8 @@ MAPA_AWANTURA = {
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
 
-# --- FUNKCJA API ELEVENLABS (BEZPIECZNIE DOSTARCZONA PRZED INTERFEJSEM) ---
 def generuj_audio_premium(tekst_do_psa, voice_id):
-    ELEVEN_API_KEY = "TWÓJ_KLUCZ_API_ELEVENLABS" # <-- WPISZ SWÓJ KLUCZ PO ZALOGOWANIU
+    ELEVEN_API_KEY = "TWÓJ_KLUCZ_API_ELEVENLABS"
     url = f"https://elevenlabs.io{voice_id}"
     headers = {
         "Accept": "audio/mpeg",
@@ -196,7 +195,6 @@ def generuj_audio_premium(tekst_do_psa, voice_id):
         return "audio/dzien_parowki_gdzie.mp3"
     except:
         return "audio/dzien_parowki_gdzie.mp3"
-
 # --- STRUMIENIOWA ANALIZA AUDIO + INTELIGENTNY DETEKTOR MOWY ---
 def analizuj_audio(audio_bytes):
     try:
@@ -204,7 +202,7 @@ def analizuj_audio(audio_bytes):
         if len(data.shape) > 1:
             data = data.mean(axis=1)
         if len(data) == 0:
-            return 600.0, False, False, False, ""
+            return 600.0, False, False, False, "", False
             
         dlugosc_sekundy = len(data) / sample_rate
         ogolna_glosnosc = np.sqrt(np.mean(data**2))
@@ -212,7 +210,7 @@ def analizuj_audio(audio_bytes):
         okienko = int(sample_rate * 0.05) 
         energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
         if len(energie_okienek) == 0:
-            return 600.0, False, False, False, ""
+            return 600.0, False, False, False, "", False
             
         max_energia = max(energie_okienek)
         srednia_energia = np.mean(energie_okienek)
@@ -258,14 +256,17 @@ def analizuj_audio(audio_bytes):
                 pass
 
         if wykryte < 30 or wykryte > 4000:
-            return 600.0, False, False, czy_awantura, wykryty_tekst_czlowieka
+            return 600.0, False, False, czy_awantura, wykryty_tekst_czlowieka, False
 
         czy_to_melodyjne_miau = czystosc_tonalna > 120.0
         czy_to_pies = czy_warczenie or (czy_impulsowy and not czy_to_melodyjne_miau)
+        
+        # Detekcja podekscytowanego szczekania na patyk/zabawkę (Wysoki ton 1200Hz - 3000Hz)
+        czy_podekscytowany_aport = czy_to_pies and (1200.0 <= wykryte <= 3000.0)
             
-        return float(wykryte), czy_warczenie, czy_to_pies, czy_awantura, wykryty_tekst_czlowieka
+        return float(wykryte), czy_warczenie, czy_to_pies, czy_awantura, wykryty_tekst_czlowieka, czy_podekscytowany_aport
     except:
-        return 600.0, False, False, False, ""
+        return 600.0, False, False, False, "", False
 
 def pobierz_tekst_kontekstowy(baza):
     dostepne = [t for t in baza if t not in st.session_state.wykorzystane_teksty]
@@ -286,7 +287,6 @@ def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.2")
     st.write("---")
     
-    # --- PROFILOWANIE URZĄDZENIA ---
     if "czy_znane_urzadzenie" not in st.session_state:
         st.session_state.czy_znane_urzadzenie = False
 
@@ -318,7 +318,7 @@ def sekcja_tlumacza():
     
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
-        wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura, mowa_czlowieka = analizuj_audio(audio_bytes)
+        wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura, mowa_czlowieka, czy_podekscytowany_aport = analizuj_audio(audio_bytes)
         
         teraz = datetime.now().time()
         final_tekst = ""
@@ -336,7 +336,6 @@ def sekcja_tlumacza():
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
         if mowa_czlowieka:
             st.sidebar.write(f"🗣️ Usłyszane słowa: *\"{mowa_czlowieka}\"*")
-
         # ==================== CRITICAL FILTERS MATRIX ====================
 
         # 🚨 ABSOLUTNY PRIORYTET #1: SYSTEM ANTY-TROLL (Zaczepka człowieka)
@@ -368,6 +367,14 @@ def sekcja_tlumacza():
                 sciezka_audio = "audio/awantura_garnki.mp3"
                 st.session_state.ostatni_byl_alert_garnki = True
                 
+        # NOWY PRIORYTET: WYKRYCIE PODEKSCYTOWANEGO PSA (Czeka na patyk)
+        elif czy_podekscytowany_aport:
+            final_tekst = "No rzuć mi ten patyk albo zabawkę, ile mam prosić?!"
+            naglowek_ekranu = "[🔥 WYKRYTO EKSCYTACJĘ APORTOWĄ]"
+            sciezka_audio = "audio/je_szlak_trafi.mp3"
+            tryb_alarmu = False
+            st.session_state.ostatni_byl_alert_garnki = False
+
         # PRIORYTET #3: TWARDE FILTRY BIOLOGICZNE (STARY ANTY-TROLL)
         elif "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
             st.session_state.ostatni_byl_alert_garnki = False
@@ -384,6 +391,7 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
+
         # 4. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
         else:
             st.session_state.licznik_tlumaczen += 1
@@ -391,7 +399,6 @@ def sekcja_tlumacza():
             czy_to_czlowiek_mowi = (wykryte_hz < 450 and not czy_to_pies)
             st.session_state.ostatni_byl_alert_garnki = False
 
-            # INTELIGENTNY SCENARIUSZ URZĄDZENIA (Tylko raz na urządzenie)
             if krok <= 5 and not czy_znane_urzadzenie:
                 if krok == 1:
                     final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
@@ -407,12 +414,11 @@ def sekcja_tlumacza():
                     sciezka_audio = "audio/krok4.mp3"
                     tryb_alarmu = True
                 elif krok == 5:
-                    final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode mnie. Koniec dyskusji!"
+                    final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode meni. Koniec dyskusji!"
                     sciezka_audio = "audio/krok5.mp3"
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
                 naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
 
-            # AUTOMATYCZNY DETEKTOR HZ (Dla stałych użytkowników)
             else:
                 if czy_znane_urzadzenie:
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
@@ -458,7 +464,6 @@ def sekcja_tlumacza():
 
         if not sciezka_audio:
             sciezka_audio = PELNA_MAPA_AUDIO.get(final_tekst, "audio/dzien_parowki_gdzie.mp3")
-
         # ==================== INTERFEJS WYNIKOWY I ODTWARZACZ PLIKÓW MP3 ====================
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
