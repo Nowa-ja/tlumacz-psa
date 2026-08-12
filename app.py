@@ -6,6 +6,7 @@ from datetime import datetime, time
 import soundfile as sf
 import numpy as np
 import streamlit.components.v1 as components
+import speech_recognition as sr  # Inteligentne rozpoznawanie słów człowieka
 
 # --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.2 - STABLE RUN) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.2", page_icon="🐕", layout="centered")
@@ -89,6 +90,7 @@ TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mi�
 TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.", "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!", "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"]
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
+
 # ==================== MAPOWANIE OFICJALNEJ MATRYCY AUDIO HAUHAU.ONLINE ====================
 MAPA_ALARM = {
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
@@ -99,7 +101,6 @@ MAPA_ALARM = {
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.": "audio/alarm_cofnij_sie.mp3",
     "Ani kroku dalej. To nie jest żart. End of fun.": "audio/alarm_ani_kroku.mp3"
 }
-
 MAPA_PORANEK = {
     "Bieguniem, bieguniem, bo się posikam!": "audio/rano_bieguniem.mp3",
     "Nie musimy wychodzić, ale zastanów się, czy to się spierze.": "audio/rano_zastanow_sie.mp3",
@@ -143,7 +144,7 @@ MAPA_POPO_WIECZOR = {
     "Zaraz mi pęcherz rozerwie.": "audio/wieczor_pecherz.mp3",
     "Fundamentalne pytanie brzmi - gdzie mam narobić?": "audio/wieczor_pytanie.mp3",
     "Wyczułem fajny towar w okolicy - maybe jest singlem?": "audio/wieczor_single.mp3",
-    "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.": "audio/wieczor_bak.mp3", 
+    "Na razie tylko puściłem bąka, ale kto wie, co czas przyniesie.": "audio/wieczor_bak.mp3",
     "Chodź pokażę ci straszną babę.": "audio/wieczor_baba.mp3",
     "A wiesz, że sąsiadka ma coś na sumieniu?": "audio/wieczor_sumienie.mp3"
 }
@@ -160,7 +161,6 @@ MAPA_RASOWA = {
     "A teraz rzuć swojską!": "audio/duzy_owczarek4.mp3"
 }
 
-## --- MAPA DLA SERII AWANTURNICZEJ (GARNKI + KONTYNUACJA O BARANIE) ---
 MAPA_AWANTURA = {
     "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!": "audio/awantura_garnki.mp3",
     "Powtórzcie temu baranowi, że nie chcemy żadnych garnków!": "audio/awantura_baran.mp3"
@@ -168,14 +168,14 @@ MAPA_AWANTURA = {
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
 
-## --- STRUMIENIOWA ANALIZA AUDIO (WYOSTRZONY DETEKTOR CHAOSU RMS) ---
+# --- STRUMIENIOWA ANALIZA AUDIO + INTELIGENTNY DETEKTOR MOWY ---
 def analizuj_audio(audio_bytes):
     try:
         data, sample_rate = sf.read(io.BytesIO(audio_bytes))
         if len(data.shape) > 1:
             data = data.mean(axis=1)
         if len(data) == 0:
-            return 600.0, False, False, False
+            return 600.0, False, False, False, ""
             
         dlugosc_sekundy = len(data) / sample_rate
         ogolna_glosnosc = np.sqrt(np.mean(data**2))
@@ -183,13 +183,12 @@ def analizuj_audio(audio_bytes):
         okienko = int(sample_rate * 0.05) 
         energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
         if len(energie_okienek) == 0:
-            return 600.0, False, False, False
+            return 600.0, False, False, False, ""
             
         max_energia = max(energie_okienek)
         srednia_energia = np.mean(energie_okienek)
         czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
         
-        # --- ABSOLUTNIE CZUŁY WARUNEK AWANTURY ---
         czy_awantura = False
         if dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.015:
             czy_awantura = True
@@ -214,15 +213,30 @@ def analizuj_audio(audio_bytes):
             if (energia_basu / calkowita_energia) > 0.20:
                 czy_warczenie = True
 
+        # --- DETEKCJA SŁÓW KLUCZOWYCH CZŁOWIEKA ---
+        wykryty_tekst_czlowieka = ""
+        if ogolna_glosnosc > 0.005:
+            try:
+                recognizer = sr.Recognizer()
+                wav_io = io.BytesIO()
+                sf.write(wav_io, data, sample_rate, format='WAV', subtype='PCM_16')
+                wav_io.seek(0)
+                with sr.AudioFile(wav_io) as source:
+                    audio_data = recognizer.record(source)
+                tekst = recognizer.recognize_google(audio_data, language="pl-PL")
+                wykryty_tekst_czlowieka = tekst.lower()
+            except:
+                pass
+
         if wykryte < 30 or wykryte > 4000:
-            return 600.0, False, False, czy_awantura
+            return 600.0, False, False, czy_awantura, wykryty_tekst_czlowieka
 
         czy_to_melodyjne_miau = czystosc_tonalna > 120.0
         czy_to_pies = czy_warczenie or (czy_impulsowy and not czy_to_melodyjne_miau)
             
-        return float(wykryte), czy_warczenie, czy_to_pies, czy_awantura
+        return float(wykryte), czy_warczenie, czy_to_pies, czy_awantura, wykryty_tekst_czlowieka
     except:
-        return 600.0, False, False, False
+        return 600.0, False, False, False, ""
 
 def pobierz_tekst_kontekstowy(baza):
     dostepne = [t for t in baza if t not in st.session_state.wykorzystane_teksty]
@@ -237,13 +251,12 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.2")
     st.write("---")
     
-    # --- PROFILOWANIE URZĄDZENIA (ZABEZPIECZONA WERSJA BEZ RE-RENDERU) ---
+    # --- PROFILOWANIE URZĄDZENIA ---
     if "czy_znane_urzadzenie" not in st.session_state:
         st.session_state.czy_znane_urzadzenie = False
 
@@ -275,7 +288,7 @@ def sekcja_tlumacza():
     
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
-        wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura = analizuj_audio(audio_bytes)
+        wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura, mowa_czlowieka = analizuj_audio(audio_bytes)
         
         teraz = datetime.now().time()
         final_tekst = ""
@@ -291,11 +304,28 @@ def sekcja_tlumacza():
         is_night = teraz >= time(23, 0) or teraz < time(4, 30)
 
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
+        if mowa_czlowieka:
+            st.sidebar.write(f"🗣️ Usłyszane słowa: *\"{mowa_czlowieka}\"*")
 
         # ==================== CRITICAL FILTERS MATRIX ====================
 
-        # 1. NAJWYŻSZY PRIORYTET: SEKWENCJA AWANTURNICZA (GARNKI ZA 8K + KONTYNUACJA O BARANIE)
-        if czy_awantura:
+        # 🚨 ABSOLUTNY PRIORYTET #1: SYSTEM ANTY-TROLL (Zaczepka człowieka)
+        if "zaszczekaj" in mowa_czlowieka or "no zaszczekaj" in mowa_czlowieka:
+            final_tekst = "Sam se zaszczekaj!"
+            naglowek_ekranu = "[💥 ODPOWIEDŹ PSA - SYSTEM ANTY-TROLL]"
+            sciezka_audio = "audio/riposta_zaszczekaj.mp3"
+            tryb_alarmu = True
+            st.session_state.ostatni_byl_alert_garnki = False
+            
+        elif "daj głos" in mowa_czlowieka or "daj glos" in mowa_czlowieka or "no daj głos" in mowa_czlowieka or "no daj glos" in mowa_czlowieka:
+            final_tekst = "Sam daj głos!"
+            naglowek_ekranu = "[💥 ODPOWIEDŹ PSA - SYSTEM ANTY-TROLL]"
+            sciezka_audio = "audio/riposta_daj_glos.mp3"
+            tryb_alarmu = True
+            st.session_state.ostatni_byl_alert_garnki = False
+
+        # PRIORYTET #2: SEKWENCJA AWANTURNICZA (GARNKI ZA 8K)
+        elif czy_awantura:
             tryb_alarmu = True
             if st.session_state.ostatni_byl_alert_garnki:
                 final_tekst = "Powtórzcie temu baranowi, że nie chcemy żadnych garnków!"
@@ -308,7 +338,7 @@ def sekcja_tlumacza():
                 sciezka_audio = "audio/awantura_garnki.mp3"
                 st.session_state.ostatni_byl_alert_garnki = True
                 
-        # 2. TWARDE FILTRY BIOLOGICZNE (ANTY-TROLL)
+        # PRIORYTET #3: TWARDE FILTRY BIOLOGICZNE (STARY ANTY-TROLL)
         elif "Miniaturka" in klasa_wybrana and (wykryte_hz < 800 or wykryte_hz > 2000):
             st.session_state.ostatni_byl_alert_garnki = False
             final_tekst = "Nie mogę przetłumaczyć tego nagrania, bo ewidentnie nagrano barana – nagraj psa!"
@@ -324,7 +354,7 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
-        # 3. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
+        # 4. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
         else:
             st.session_state.licznik_tlumaczen += 1
             krok = st.session_state.licznik_tlumaczen
