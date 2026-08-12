@@ -6,7 +6,8 @@ from datetime import datetime, time
 import soundfile as sf
 import numpy as np
 import streamlit.components.v1 as components
-import speech_recognition as sr  # Inteligentne rozpoznawanie słów człowieka
+import speech_recognition as sr  # Zaawansowane rozpoznawanie mowy ludzkiej
+import requests  # Obsługa bezpiecznych zapytań do API ElevenLabs
 
 # --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.2 - STABLE RUN) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.2", page_icon="🐕", layout="centered")
@@ -168,6 +169,34 @@ MAPA_AWANTURA = {
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
 
+# --- FUNKCJA API ELEVENLABS (BEZPIECZNIE DOSTARCZONA PRZED INTERFEJSEM) ---
+def generuj_audio_premium(tekst_do_psa, voice_id):
+    ELEVEN_API_KEY = "TWÓJ_KLUCZ_API_ELEVENLABS" # <-- WPISZ SWÓJ KLUCZ PO ZALOGOWANIU
+    url = f"https://elevenlabs.io{voice_id}"
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": ELEVEN_API_KEY
+    }
+    data = {
+        "text": tekst_do_psa,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "stability": 0.45,
+            "similarity_boost": 0.85
+        }
+    }
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 200:
+            sciezka_dynamiczna = "audio/dynamic_premium.mp3"
+            with open(sciezka_dynamiczna, "wb") as f:
+                f.write(response.content)
+            return sciezka_dynamiczna
+        return "audio/dzien_parowki_gdzie.mp3"
+    except:
+        return "audio/dzien_parowki_gdzie.mp3"
+
 # --- STRUMIENIOWA ANALIZA AUDIO + INTELIGENTNY DETEKTOR MOWY ---
 def analizuj_audio(audio_bytes):
     try:
@@ -251,6 +280,7 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
+
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.2")
@@ -310,7 +340,7 @@ def sekcja_tlumacza():
         # ==================== CRITICAL FILTERS MATRIX ====================
 
         # 🚨 ABSOLUTNY PRIORYTET #1: SYSTEM ANTY-TROLL (Zaczepka człowieka)
-        if "zaszczekaj" in mowa_czlowieka or "no zaszczekaj" in mowa_czlowieka:
+        if "zaszczekaj" in mowa_czlowieka or "no zaszczekaj" in mova_czlowieka:
             final_tekst = "Sam se zaszczekaj!"
             naglowek_ekranu = "[💥 ODPOWIEDŹ PSA - SYSTEM ANTY-TROLL]"
             sciezka_audio = "audio/riposta_zaszczekaj.mp3"
@@ -370,7 +400,7 @@ def sekcja_tlumacza():
                     final_tekst = "Nie proś mnie na sucho... Ale ok, za parówkę mogę przemówić!" if czy_to_czlowiek_mowi else "Ale ok, za parówkę mogę przemówić!"
                     sciezka_audio = "audio/krok2_ludzki.mp3" if czy_to_czlowiek_mowi else "audio/krok2.mp3"
                 elif krok == 3:
-                    final_tekst = "Jeszcze na drugą nóżkę i będzie OK."
+                    final_tekst = "Jeczcze na drugą nóżkę i będzie OK."
                     sciezka_audio = "audio/krok3.mp3"
                 elif krok == 4:
                     final_tekst = "Ciii... ciszej mów, bo sąsiad ma skitrany najlepszy towar!"
