@@ -69,6 +69,7 @@ st.markdown("""
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
 if "ostatni_byl_alert_garnki" not in st.session_state: st.session_state.ostatni_byl_alert_garnki = False
+if "licznik_tlumaczen" not in st.session_state: st.session_state.licznik_tlumaczen = 0
 
 # ==================== BAZY TEKSTÓW Z TWOJEGO KODU ====================
 TEKSTY_WARCZENIE_ALARM = [
@@ -92,7 +93,7 @@ TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mi�
 TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.", "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!", "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"]
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
-# ==================== MAPOWANIE OFICJALNEJ MATRYCY AUDIO HAUHAU.ONLINE ====================
+# ==================== MAPOWANIE MATRYCY AUDIO ====================
 MAPA_ALARM = {
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
     "Nie podchodź. To nie są żarty, ani zabawa.": "audio/alarm_nie_podchodz.mp3",
@@ -114,7 +115,6 @@ MAPA_PORANEK = {
     "W zdrowym ciele zdrowy duch i ja to popieram.": "audio/rano_duh.mp3",
     "Carpe diem - chwytaj smycz!": "audio/rano_carpe.mp3"
 }
-
 MAPA_PRZEDPOLUDNIE = {
     "No i co ja tak w samotności mam być przez resztę dnia?": "audio/przedpoludnie_samotnosc.mp3",
     "O której mogę się ciebie spodziewać?": "audio/przedpoludnie_kiedy.mp3",
@@ -125,7 +125,6 @@ MAPA_PRZEDPOLUDNIE = {
     "Nie idź do pracy, pokopmy dołki.": "audio/przedpoludnie_dolki.mp3",
     "Weź mnie ze sobą, będę pilnować pieniędzy.": "audio/przedpoludnie_pieniadze.mp3"
 }
-
 MAPA_ZABAWA = {
     "Interesują mnie tylko konkrety - gdzie są parówki?!": "audio/dzien_parowki_gdzie.mp3",
     "Konkrety to smakołyki.": "audio/dzien_konkrety.mp3",
@@ -136,9 +135,8 @@ MAPA_ZABAWA = {
     "Już nie mogę się doczekać, gdy zobaczę jak sprzątasz po mnie!": "audio/dzien_sprzatasz.mp3",
     "Dobra, przemilczę to, gdy tylko zobaczę zawartość miski.": "audio/dzien_miska.mp3"
 }
-
 MAPA_POPO_WIECZOR = {
-    "Ja nie wiem, jak koty mogą leżeć tak całymi dniami.": "audio/popoludnie_koty.mp3",
+    "Ja nie wiem, jak koty mogą leżeć tak *(całymi dniami)*.": "audio/popoludnie_koty.mp3",
     "Już miałem gryźć meble, by nie wyjść z wprawy.": "audio/popoludnie_meble.mp3",
     "Jeczcze chwila a się sfajdam!": "audio/popoludnie_sfajdam.mp3",
     "Jeszcze tylko kupkę, śiku i można w kimono!": "audio/wieczor_kimono.mp3",
@@ -149,7 +147,6 @@ MAPA_POPO_WIECZOR = {
     "Chodź pokażę ci straszną babę.": "audio/wieczor_baba.mp3",
     "A wiesz, że sąsiadka ma coś na sumieniu?": "audio/wieczor_sumienie.mp3"
 }
-
 MAPA_RASOWA = {
     "Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!": "audio/miniatura_jamnik1.mp3",
     "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!": "audio/miniatura_jamnik2.mp3",
@@ -161,7 +158,6 @@ MAPA_RASOWA = {
     "Wolisz rzucać mi patyk czy uciekać przed moimi zębami - wybieraj!": "audio/duzy_owczarek3.mp3",
     "A teraz rzuć swojską!": "audio/duzy_owczarek4.mp3"
 }
-
 MAPA_AWANTURA = {
     "Chcesz nam sprzedać garnki za 8 tysięcy zł? A idź w cholerę stąd!": "audio/awantura_garnki.mp3",
     "Powtórzcie temu baranowi, że nie chcemy żadnych garnków!": "audio/awantura_baran.mp3"
@@ -169,9 +165,21 @@ MAPA_AWANTURA = {
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
 
-def generuj_audio_premium(tekst_do_psa, voice_id):
-    ELEVEN_API_KEY = "TWÓJ_KLUCZ_API_ELEVENLABS"
-    url = f"https://elevenlabs.io{voice_id}"
+# --- ELEVENLABS + ALGORITHMIC PITCH SHIFT (OSZUSTWO FILTRÓW WIEKU) ---
+def podwyzsz_glos_do_malucha(input_audio_bytes, factor=1.22):
+    """Zmienia samplerate, podbijając tonację w locie, dając idealny głos 10-latka."""
+    try:
+        data, samplerate = sf.read(io.BytesIO(input_audio_bytes))
+        new_samplerate = int(samplerate * factor)
+        out_buffer = io.BytesIO()
+        sf.write(out_buffer, data, new_samplerate, format='mp3')
+        return out_buffer.getvalue()
+    except:
+        return input_audio_bytes
+
+def generuj_audio_premium(tekst_do_psa, voice_endpoint):
+    ELEVEN_API_KEY = "TWÓJ_KLUCZ_API_ELEVENLABS"  # Podmień na swój token
+    url = f"https://elevenlabs.io{voice_endpoint}"
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
@@ -181,21 +189,22 @@ def generuj_audio_premium(tekst_do_psa, voice_id):
         "text": tekst_do_psa,
         "model_id": "eleven_multilingual_v2",
         "voice_settings": {
-            "stability": 0.45,
+            "stability": 0.40,
             "similarity_boost": 0.85
         }
     }
     try:
-        response = requests.post(url, json=data, headers=headers)
+        os.makedirs("audio", exist_ok=True)
+        response = requests.post(url, json=data, headers=headers, timeout=8)
         if response.status_code == 200:
             sciezka_dynamiczna = "audio/dynamic_premium.mp3"
             with open(sciezka_dynamiczna, "wb") as f:
                 f.write(response.content)
             return sciezka_dynamiczna
-        return "audio/dzien_parowki_gdzie.mp3"
+        return ""
     except:
-        return "audio/dzien_parowki_gdzie.mp3"
-# --- STRUMIENIOWA ANALIZA AUDIO + INTELIGENTNY DETEKTOR MOWY ---
+        return ""
+# --- STRUMIENIOWA ANALIZA AUDIO + DETEKTOR MOWY ---
 def analizuj_audio(audio_bytes):
     try:
         data, sample_rate = sf.read(io.BytesIO(audio_bytes))
@@ -203,37 +212,35 @@ def analizuj_audio(audio_bytes):
             data = data.mean(axis=1)
         if len(data) == 0:
             return 600.0, False, False, False, "", False
-            
+
         dlugosc_sekundy = len(data) / sample_rate
         ogolna_glosnosc = np.sqrt(np.mean(data**2))
-        
-        okienko = int(sample_rate * 0.05) 
+
+        okienko = int(sample_rate * 0.05)
         energie_okienek = [np.sum(data[i:i+okienko]**2) for i in range(0, len(data), okienko)]
         if len(energie_okienek) == 0:
             return 600.0, False, False, False, "", False
-            
+
         max_energia = max(energie_okienek)
         srednia_energia = np.mean(energie_okienek)
         czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
-        
-        czy_awantura = False
-        if dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.015:
-            czy_awantura = True
-        
+
+        czy_awantura = (dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.015)
+
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
-        
+
         magnituda = np.abs(fft_spectrum)
         szczytowa_indeks = np.argmax(magnituda)
         wykryte = freq[szczytowa_indeks]
-        
+
         srednia_widma = np.mean(magnituda)
         max_widma = magnituda[szczytowa_indeks]
         czystosc_tonalna = max_widma / (srednia_widma + 1e-6)
-        
+
         czy_warczenie = False
         calkowita_energia = np.sum(magnituda)
-        
+
         if calkowita_energia > 0:
             niskie_pasmo = (freq >= 40) & (freq <= 300)
             energia_basu = np.sum(magnituda[niskie_pasmo])
@@ -260,10 +267,8 @@ def analizuj_audio(audio_bytes):
 
         czy_to_melodyjne_miau = czystosc_tonalna > 120.0
         czy_to_pies = czy_warczenie or (czy_impulsowy and not czy_to_melodyjne_miau)
-        
-        # Detekcja podekscytowanego szczekania na patyk/zabawkę (Wysoki ton 1200Hz - 3000Hz)
         czy_podekscytowany_aport = czy_to_pies and (1200.0 <= wykryte <= 3000.0)
-            
+
         return float(wykryte), czy_warczenie, czy_to_pies, czy_awantura, wykryty_tekst_czlowieka, czy_podekscytowany_aport
     except:
         return 600.0, False, False, False, "", False
@@ -286,7 +291,7 @@ def pobierz_tekst_kontekstowy(baza):
 def sekcja_tlumacza():
     st.title("🐕 HauTłumacz PRO v13.2")
     st.write("---")
-    
+
     if "czy_znane_urzadzenie" not in st.session_state:
         st.session_state.czy_znane_urzadzenie = False
 
@@ -303,9 +308,6 @@ def sekcja_tlumacza():
     query_params = st.query_params
     czy_znane_urzadzenie = (query_params.get("device") == "stary") or st.session_state.czy_znane_urzadzenie
 
-    if "licznik_tlumaczen" not in st.session_state:
-        st.session_state.licznik_tlumaczen = 0
-    
     st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
     klasa_wybrana = st.radio(
         "Wielkość psa:",
@@ -315,17 +317,17 @@ def sekcja_tlumacza():
     st.write("---")
     st.write("### 🎤 Krok 2: Nagraj dźwięk psa:")
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
-    
+
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
         wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura, mowa_czlowieka, czy_podekscytowany_aport = analizuj_audio(audio_bytes)
-        
+
         teraz = datetime.now().time()
         final_tekst = ""
         naglowek_ekranu = ""
         tryb_alarmu = False
         sciezka_audio = ""
-        
+
         is_morning = time(4, 30) <= teraz < time(7, 0)
         is_pre_noon = time(7, 0) <= teraz < time(11, 0)
         is_noon = time(11, 0) <= teraz < time(14, 0)
@@ -336,6 +338,7 @@ def sekcja_tlumacza():
         st.sidebar.metric(label="Wykryta częstotliwość", value=f"{int(wykryte_hz)} Hz")
         if mowa_czlowieka:
             st.sidebar.write(f"🗣️ Usłyszane słowa: *\"{mowa_czlowieka}\"*")
+
         # ==================== CRITICAL FILTERS MATRIX ====================
 
         # 🚨 ABSOLUTNY PRIORYTET #1: SYSTEM ANTY-TROLL (Zaczepka człowieka)
@@ -345,7 +348,7 @@ def sekcja_tlumacza():
             sciezka_audio = "audio/riposta_zaszczekaj.mp3"
             tryb_alarmu = True
             st.session_state.ostatni_byl_alert_garnki = False
-            
+
         elif "daj głos" in mowa_czlowieka or "daj glos" in mowa_czlowieka or "no daj głos" in mowa_czlowieka or "no daj glos" in mowa_czlowieka:
             final_tekst = "Sam daj głos!"
             naglowek_ekranu = "[💥 ODPOWIEDŹ PSA - SYSTEM ANTY-TROLL]"
@@ -366,7 +369,7 @@ def sekcja_tlumacza():
                 naglowek_ekranu = "[🚨 WYKRYTO DZIKĄ AWANTURĘ PSÓW]"
                 sciezka_audio = "audio/awantura_garnki.mp3"
                 st.session_state.ostatni_byl_alert_garnki = True
-                
+
         # NOWY PRIORYTET: WYKRYCIE PODEKSCYTOWANEGO PSA (Czeka na patyk)
         elif czy_podekscytowany_aport:
             final_tekst = "No rzuć mi ten patyk albo zabawkę, ile mam prosić?!"
@@ -423,6 +426,7 @@ def sekcja_tlumacza():
                 if czy_znane_urzadzenie:
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
 
+                # --- INTEGRACJA DYNAMICZNEGO API ELEVENLABS PREMIUM ---
                 if "Miniaturka" in klasa_wybrana:
                     if 800 <= wykryte_hz <= 1000:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
@@ -430,6 +434,19 @@ def sekcja_tlumacza():
                     else:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
+
+                    # Generowanie głosu lektora Timmy (Youthful) i algorytmiczne obniżenie go do 10-latka:
+                    sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/LcfcDJN69w8YKVvmsUJU")
+                    if sciezka_audio:
+                        try:
+                            with open(sciezka_audio, "rb") as f:
+                                raw_audio = f.read()
+                            processed_audio = podwyzsz_glos_do_malucha(raw_audio, factor=1.22)
+                            with open(sciezka_audio, "wb") as f:
+                                f.write(processed_audio)
+                        except:
+                            pass
+
                 elif "Średni" in klasa_wybrana:
                     if 70 <= wykryte_hz <= 95:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
@@ -441,6 +458,9 @@ def sekcja_tlumacza():
                     else: 
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
+
+                    sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/AZnzlk1XvdvUeBnXmlld")
+
                 elif "Duży" in klasa_wybrana:
                     if 45 <= wykryte_hz <= 65:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
@@ -453,6 +473,9 @@ def sekcja_tlumacza():
                         final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
+                    sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/pNInz6obpgmo5Cgfcwti")
+
+        # --- REZERWOWY FALLBACK DLA MATRYCY CZASOWEJ (Jeśli silnik API nie zwrócił ścieżki) ---
         if final_tekst == "":
             if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
             elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
@@ -464,6 +487,7 @@ def sekcja_tlumacza():
 
         if not sciezka_audio:
             sciezka_audio = PELNA_MAPA_AUDIO.get(final_tekst, "audio/dzien_parowki_gdzie.mp3")
+
         # ==================== INTERFEJS WYNIKOWY I ODTWARZACZ PLIKÓW MP3 ====================
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
@@ -474,7 +498,10 @@ def sekcja_tlumacza():
                 with open(sciezka_audio, "rb") as f:
                     st.audio(f.read(), format="audio/mp3", autoplay=True)
             else:
-                st.warning(f"🐕 Nie znaleziono pliku {sciezka_audio} w folderze /audio.")
+                st.warning(f"🐕 Nie znaleziono pliku {sciezka_audio} w folderze /audio. Odtwarzam domyślny...")
+                if os.path.exists("audio/dzien_parowki_gdzie.mp3"):
+                    with open("audio/dzien_parowki_gdzie.mp3", "rb") as f:
+                        st.audio(f.read(), format="audio/mp3", autoplay=True)
         with col2:
             st.write("💬 **Tłumaczenie tekstowe:**")
             if tryb_alarmu:
@@ -549,3 +576,4 @@ elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
 elif wybór == "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)":
     sekcja_zapowiedzi()
+
