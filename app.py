@@ -225,8 +225,6 @@ def analizuj_audio(audio_bytes):
         srednia_energia = np.mean(energie_okienek)
         czy_impulsowy = (max_energia / (srednia_energia + 1e-6)) > 4.5
 
-        czy_awantura = (dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.015)
-
         fft_spectrum = np.fft.rfft(data)
         freq = np.fft.rfftfreq(len(data), d=1.0/sample_rate)
 
@@ -246,6 +244,9 @@ def analizuj_audio(audio_bytes):
             energia_basu = np.sum(magnituda[niskie_pasmo])
             if (energia_basu / calkowita_energia) > 0.20:
                 czy_warczenie = True
+
+        # [FIX] Obliczamy awanturę dopiero TUTAJ - kiedy wiemy już, czy pies realnie warczy!
+        czy_awantura = (dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.018 and czy_warczenie)
 
         # --- DETEKCJA SŁÓW KLUCZOWYCH CZŁOWIEKA ---
         wykryty_tekst_czlowieka = ""
