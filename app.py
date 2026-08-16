@@ -290,7 +290,7 @@ def pobierz_tekst_kontekstowy(baza):
 
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
-    st.title("🐕 HauTłumacz PRO v13.2")
+    st.title("🐕 HauHau.online PRO v13.2")
     st.write("---")
 
     if "czy_znane_urzadzenie" not in st.session_state:
@@ -392,7 +392,7 @@ def sekcja_tlumacza():
             sciezka_audio = "audio/error_baran.mp3"
         elif "Duży" in klasa_wybrana and (wykryte_hz < 40 or wykryte_hz > 750 or (wykryte_hz < 450 and not czy_to_pies and not czy_warczenie)):
             st.session_state.ostatni_byl_alert_garnki = False
-            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia dużego psa. Przestań wyć jak człowiek!"
+            final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia ani innych dźwięków wydawnych przez psy. Częstotliwość wskazuje, że był to dźwięk wydawany przez starego osła!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
 
