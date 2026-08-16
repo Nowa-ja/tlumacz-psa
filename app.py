@@ -493,22 +493,38 @@ def sekcja_tlumacza():
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
         col1, col2 = st.columns(2)
-        with col1:
-            st.write("🔊 **Odtwórz głosowo:**")
-            if os.path.exists(sciezka_audio):
-                with open(sciezka_audio, "rb") as f:
-                    st.audio(f.read(), format="audio/mp3", autoplay=True)
-            else:
-                st.warning(f"🐕 Nie znaleziono pliku {sciezka_audio} w folderze /audio. Odtwarzam domyślny...")
-                if os.path.exists("audio/dzien_parowki_gdzie.mp3"):
-                    with open("audio/dzien_parowki_gdzie.mp3", "rb") as f:
-                        st.audio(f.read(), format="audio/mp3", autoplay=True)
+        
         with col2:
             st.write("💬 **Tłumaczenie tekstowe:**")
             if tryb_alarmu:
                 st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
             else:
                 st.success(f"{naglowek_ekranu}: {final_tekst}")
+
+        with col1:
+            st.write("🔊 **Odtwórz głosowo:**")
+            
+            # Tworzymy unikalny klucz czasowy, aby wymusić na przeglądarce odświeżenie dźwięku (Cache Buster)
+            timestamp_cache = int(datetime.now().timestamp())
+            
+            # --- ZABEZPIECZENIE: Słownik automatycznego dopasowania audio z tekstu ---
+            # Jeśli w filtrach zapomniałeś podać sciezka_audio, szukamy jej po tekście w bazie danych
+            if not sciezka_audio or sciezka_audio == "audio/dzien_parowki_gdzie.mp3":
+                sciezka_audio = PELNA_MAPA_AUDIO.get(final_tekst, "")
+
+            # --- DYSKRETNE ODTWARZANIE BEZ KOMUNIKATÓW TECHNICZNYCH ---
+            if sciezka_audio and os.path.exists(sciezka_audio):
+                try:
+                    with open(sciezka_audio, "rb") as f:
+                        # Ukrywamy nazwy plików - użytkownik widzi tylko czysty, estetyczny odtwarzacz
+                        st.audio(f.read(), format="audio/mp3", autoplay=True, key=f"audio_{timestamp_cache}")
+                except:
+                    # Jeśli wystąpi błąd odczytu, aplikacja milczy i nie pokazuje błędów systemowych
+                    st.info("🐕 Trwa przetwarzanie dźwięku psa...")
+            else:
+                # Jeśli plik fizycznie nie istnieje, NIE puszczamy parówek i NIE pokazujemy ostrzeżeń.
+                # Wyświetlamy elegancki komunikat dla użytkownika, zachowując magię aplikacji.
+                st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
                 
     st.write("---")
     if st.button("📝 Regulamin strony"):
@@ -527,6 +543,7 @@ def sekcja_tlumacza():
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
+
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
