@@ -404,6 +404,9 @@ def sekcja_tlumacza():
             st.session_state.ostatni_byl_alert_garnki = False
 
             if krok <= 5 and not czy_znane_urzadzenie:
+                # Zmieniamy techniczny nagłówek na naturalne słowo
+                naglowek_ekranu = "Tłumaczenie"
+                
                 if krok == 1:
                     final_tekst = "Sam powiedz coś. A tak w ogóle, to co to dziś wigilia?" if czy_to_czlowiek_mowi else "A co to dziś wigilia, że mam przemówić?"
                     sciezka_audio = "audio/krok1_ludzki.mp3" if czy_to_czlowiek_mowi else "audio/krok1.mp3"
@@ -421,7 +424,6 @@ def sekcja_tlumacza():
                     final_tekst = "Podobno ma najlepsze parówki, ale nie wiesz tego ode meni. Koniec dyskusji!"
                     sciezka_audio = "audio/krok5.mp3"
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
-                naglowek_ekranu = f"[💥 SCENARIUSZ KROK {krok}]"
 
             else:
                 if czy_znane_urzadzenie:
