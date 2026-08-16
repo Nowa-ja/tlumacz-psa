@@ -504,26 +504,20 @@ def sekcja_tlumacza():
         with col1:
             st.write("🔊 **Odtwórz głosowo:**")
             
-            # Tworzymy unikalny klucz czasowy, aby wymusić na przeglądarce odświeżenie dźwięku (Cache Buster)
+            # Unikalny klucz czasowy dla przeglądarki (eliminujemy cache Twojego generatora)
             timestamp_cache = int(datetime.now().timestamp())
             
-            # --- ZABEZPIECZENIE: Słownik automatycznego dopasowania audio z tekstu ---
-            # Jeśli w filtrach zapomniałeś podać sciezka_audio, szukamy jej po tekście w bazie danych
-            if not sciezka_audio or sciezka_audio == "audio/dzien_parowki_gdzie.mp3":
-                sciezka_audio = PELNA_MAPA_AUDIO.get(final_tekst, "")
-
-            # --- DYSKRETNE ODTWARZANIE BEZ KOMUNIKATÓW TECHNICZNYCH ---
+            # Sprawdzamy, czy ścieżka została ustawiona i czy plik fizycznie istnieje na serwerze
             if sciezka_audio and os.path.exists(sciezka_audio):
                 try:
                     with open(sciezka_audio, "rb") as f:
-                        # Ukrywamy nazwy plików - użytkownik widzi tylko czysty, estetyczny odtwarzacz
+                        # Odtwarzamy czysty dźwięk bez pokazywania nazwy pliku użytkownikowi
                         st.audio(f.read(), format="audio/mp3", autoplay=True, key=f"audio_{timestamp_cache}")
                 except:
-                    # Jeśli wystąpi błąd odczytu, aplikacja milczy i nie pokazuje błędów systemowych
-                    st.info("🐕 Trwa przetwarzanie dźwięku psa...")
+                    # Cichy fallback na wypadek problemów technicznych Streamlita
+                    st.info("🐕 Trwa odtwarzanie dźwięku psa...")
             else:
-                # Jeśli plik fizycznie nie istnieje, NIE puszczamy parówek i NIE pokazujemy ostrzeżeń.
-                # Wyświetlamy elegancki komunikat dla użytkownika, zachowując magię aplikacji.
+                # Jeśli pliku brakuje na serwerze, pokazujemy magię zamiast błędu o parówkach!
                 st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
                 
     st.write("---")
@@ -543,6 +537,7 @@ def sekcja_tlumacza():
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
+
 
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
