@@ -492,33 +492,31 @@ def sekcja_tlumacza():
         # ==================== INTERFEJS WYNIKOWY I ODTWARZACZ PLIKÓW MP3 ====================
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
-        col1, col2 = st.columns(2)
         
-        with col2:
-            st.write("💬 **Tłumaczenie tekstowe:**")
-            if tryb_alarmu:
-                st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
-            else:
-                st.success(f"{naglowek_ekranu}: {final_tekst}")
+        # Najpierw wyświetlamy duże, czytelne tłumaczenie tekstowe na środku ekranu
+        if tryb_alarmu:
+            st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
+        else:
+            st.success(f"{naglowek_ekranu}: {final_tekst}")
 
-        with col1:
-            st.write("🔊 **Odtwórz głosowo:**")
-            
-            # Unikalny klucz czasowy dla przeglądarki (eliminujemy cache Twojego generatora)
-            timestamp_cache = int(datetime.now().timestamp())
-            
-            # Sprawdzamy, czy ścieżka została ustawiona i czy plik fizycznie istnieje na serwerze
-            if sciezka_audio and os.path.exists(sciezka_audio):
-                try:
-                    with open(sciezka_audio, "rb") as f:
-                        # Odtwarzamy czysty dźwięk bez pokazywania nazwy pliku użytkownikowi
-                        st.audio(f.read(), format="audio/mp3", autoplay=True, key=f"audio_{timestamp_cache}")
-                except:
-                    # Cichy fallback na wypadek problemów technicznych Streamlita
-                    st.info("🐕 Trwa odtwarzanie dźwięku psa...")
-            else:
-                # Jeśli pliku brakuje na serwerze, pokazujemy magię zamiast błędu o parówkach!
-                st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
+        st.write("🔊 **Odtwórz głosowo:**")
+        
+        # Unikalny klucz czasowy dla przeglądarki (eliminujemy cache Twojego generatora)
+        timestamp_cache = int(datetime.now().timestamp())
+        
+        # Sprawdzamy, czy ścieżka została ustawiona i czy plik fizycznie istnieje na serwerze
+        if sciezka_audio and os.path.exists(sciezka_audio):
+            try:
+                with open(sciezka_audio, "rb") as f:
+                    # Wywołujemy st.audio bezpośrednio na stronie (poza kolumnami)
+                    st.audio(f.read(), format="audio/mp3", autoplay=True, key=f"audio_{timestamp_cache}")
+            except Exception as e:
+                # Jeśli Streamlit rzuci błąd, wyświetli go w panelu bocznym tylko dla Ciebie
+                st.sidebar.error(f"Błąd odczytu pliku: {str(e)}")
+                st.info("🐕 Trwa odtwarzanie dźwięku psa...")
+        else:
+            # Jeśli pliku brakuje na serwerze
+            st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
                 
     st.write("---")
     if st.button("📝 Regulamin strony"):
@@ -537,7 +535,6 @@ def sekcja_tlumacza():
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
-
 
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
