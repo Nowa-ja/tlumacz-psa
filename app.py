@@ -493,7 +493,7 @@ def sekcja_tlumacza():
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
         
-        # Najpierw wyświetlamy duże, czytelne tłumaczenie tekstowe na środku ekranu
+        # Wyświetlamy duże tłumacznie tekstowe
         if tryb_alarmu:
             st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
         else:
@@ -501,21 +501,17 @@ def sekcja_tlumacza():
 
         st.write("🔊 **Odtwórz głosowo:**")
         
-        # Unikalny klucz czasowy dla przeglądarki (eliminujemy cache Twojego generatora)
-        timestamp_cache = int(datetime.now().timestamp())
-        
         # Sprawdzamy, czy ścieżka została ustawiona i czy plik fizycznie istnieje na serwerze
         if sciezka_audio and os.path.exists(sciezka_audio):
             try:
                 with open(sciezka_audio, "rb") as f:
-                    # Wywołujemy st.audio bezpośrednio na stronie (poza kolumnami)
-                    st.audio(f.read(), format="audio/mp3", autoplay=True, key=f"audio_{timestamp_cache}")
+                    # Usunęliśmy 'key', aby starsza wersja Streamlita nie zgłaszała błędu
+                    st.audio(f.read(), format="audio/mp3", autoplay=True)
             except Exception as e:
-                # Jeśli Streamlit rzuci błąd, wyświetli go w panelu bocznym tylko dla Ciebie
                 st.sidebar.error(f"Błąd odczytu pliku: {str(e)}")
                 st.info("🐕 Trwa odtwarzanie dźwięku psa...")
         else:
-            # Jeśli pliku brakuje na serwerze
+            # Jeśli pliku brakuje na serwerze, zachowujemy dyskrecję i magię
             st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
                 
     st.write("---")
@@ -535,6 +531,7 @@ def sekcja_tlumacza():
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
+
 
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
