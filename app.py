@@ -106,7 +106,7 @@ MAPA_ALARM = {
 MAPA_PORANEK = {
     "Bieguniem, bieguniem, bo się posikam!": "audio/rano_bieguniem.mp3",
     "Nie musimy wychodzić, ale zastanów się, czy to się spierze.": "audio/rano_zastanow_sie.mp3",
-    "Chodź szybko to zobaczysz sąsiadkę bez makijażu!": "audio/rano_sasiadka.mp3",
+    "Chodź快速 to zobaczysz sąsiadkę bez makijażu!": "audio/rano_sasiadka.mp3",
     "Szybko, bo za chwilę mi tyłek rozerwie!": "audio/rano_tylek.mp3",
     "Pospiesz się, bo narobię ci na środek pokoju!": "audio/rano_narobie.mp3",
     "Sikać mi się chce, szybko!": "audio/rano_siki.mp3",
@@ -245,7 +245,7 @@ def analizuj_audio(audio_bytes):
             if (energia_basu / calkowita_energia) > 0.20:
                 czy_warczenie = True
 
-        # [FIX] Obliczamy awanturę dopiero TUTAJ - kiedy wiemy już, czy pies realnie warczy!
+        # Obliczamy awanturę dopiero TUTAJ - kiedy wiemy już, czy pies realnie warczy!
         czy_awantura = (dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.018 and czy_warczenie)
 
         # --- DETEKCJA SŁÓW KLUCZOWYCH CZŁOWIEKA ---
@@ -309,16 +309,13 @@ def sekcja_tlumacza():
     query_params = st.query_params
     czy_znane_urzadzenie = (query_params.get("device") == "stary") or st.session_state.czy_znane_urzadzenie
 
-    st.write("### 🏷️ Krok 1: Wybierz klasę wielkości psa przed nagraniem:")
-    klasa_wybrana = st.radio(
-        "Wielkość psa:",
-        ["Miniaturka (np. York, Maltańczyk)", "Średni (np. Beagle, Border Collie)", "Duży (np. Owczarek, Rottweiler)"],
-        horizontal=True
-    )
-    st.write("---")
-    st.write("### 🎤 Krok 2: Nagraj dźwięk psa:")
-    audio_nagrane = st.audio_input("Nagraj dźwięk:")
+    # --- UKRYCIE OPCJI WYBORU WIELKOŚCI DLA UŻYTKOWNIKA ---
+    # Zgodnie z Twoją prośbą, menu wyboru zostało usunięte z widoku użytkownika.
+    # Pod spodem aplikacja domyślnie działa na profilu psa średniego.
+    klasa_wybrana = "Średni (np. Beagle, Border Collie)"
 
+    st.write("### 🎤 Krok 1: Nagraj dźwięk psa:")
+    audio_nagrane = st.audio_input("Nagraj dźwięk:")
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
         wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura, mowa_czlowieka, czy_podekscytowany_aport = analizuj_audio(audio_bytes)
@@ -395,7 +392,6 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia ani innych dźwięków wydawnych przez psy. Częstotliwość wskazuje, że był to dźwięk wydawany przez starego osła!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
-
         # 4. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
         else:
             st.session_state.licznik_tlumaczen += 1
@@ -404,7 +400,6 @@ def sekcja_tlumacza():
             st.session_state.ostatni_byl_alert_garnki = False
 
             if krok <= 5 and not czy_znane_urzadzenie:
-                # Zmieniamy techniczny nagłówek na naturalne słowo
                 naglowek_ekranu = "Tłumaczenie"
                 
                 if krok == 1:
@@ -438,7 +433,6 @@ def sekcja_tlumacza():
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
 
-                    # Generowanie głosu lektora Timmy (Youthful) i algorytmiczne obniżenie go do 10-latka:
                     sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/LcfcDJN69w8YKVvmsUJU")
                     if sciezka_audio:
                         try:
@@ -495,7 +489,6 @@ def sekcja_tlumacza():
         st.write("---")
         st.markdown("### 📊 Wynik analizy")
         
-        # Wyświetlamy duże tłumacznie tekstowe
         if tryb_alarmu:
             st.markdown(f"<div class='red-alert-box'>{naglowek_ekranu}<br><br>{final_tekst}</div>", unsafe_allow_html=True)
         else:
@@ -503,17 +496,14 @@ def sekcja_tlumacza():
 
         st.write("🔊 **Odtwórz głosowo:**")
         
-        # Sprawdzamy, czy ścieżka została ustawiona i czy plik fizycznie istnieje na serwerze
         if sciezka_audio and os.path.exists(sciezka_audio):
             try:
                 with open(sciezka_audio, "rb") as f:
-                    # Usunęliśmy 'key', aby starsza wersja Streamlita nie zgłaszała błędu
                     st.audio(f.read(), format="audio/mp3", autoplay=True)
             except Exception as e:
                 st.sidebar.error(f"Błąd odczytu pliku: {str(e)}")
                 st.info("🐕 Trwa odtwarzanie dźwięku psa...")
         else:
-            # Jeśli pliku brakuje na serwerze, zachowujemy dyskrecję i magię
             st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
                 
     st.write("---")
@@ -529,12 +519,10 @@ def sekcja_tlumacza():
         
         Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
         
-        W celu przetłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
+        W celu tłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
         
         Życzę wszystkim wiele radości z użytkowania tłumacza!
         """)
-
-
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
@@ -585,4 +573,3 @@ elif wybór == "🌐 Encyklopedia Hz (Blog)":
     sekcja_bloga()
 elif wybór == "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)":
     sekcja_zapowiedzi()
-
