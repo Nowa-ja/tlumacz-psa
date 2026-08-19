@@ -93,11 +93,12 @@ TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mi�
 TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.", "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!", "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"]
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
+
 # ==================== MAPOWANIE MATRYCY AUDIO ====================
 MAPA_ALARM = {
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
     "Nie podchodź. To nie są żarty, ani zabawa.": "audio/alarm_nie_podchodz.mp3",
-    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej gotowości do ataku.": "audio/alarm_odsun_sie.mp3",
+    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej godowości do ataku.": "audio/alarm_odsun_sie.mp3",
     "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.": "audio/alarm_zostaw_mnie.mp3",
     "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.": "audio/alarm_odejdz.mp3",
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.": "audio/alarm_cofnij_sie.mp3",
@@ -106,7 +107,7 @@ MAPA_ALARM = {
 MAPA_PORANEK = {
     "Bieguniem, bieguniem, bo się posikam!": "audio/rano_bieguniem.mp3",
     "Nie musimy wychodzić, ale zastanów się, czy to się spierze.": "audio/rano_zastanow_sie.mp3",
-    "Chodź快速 to zobaczysz sąsiadkę bez makijażu!": "audio/rano_sasiadka.mp3",
+    "Chodź szybko to zobaczysz sąsiadkę bez makijażu!": "audio/rano_sasiadka.mp3",
     "Szybko, bo za chwilę mi tyłek rozerwie!": "audio/rano_tylek.mp3",
     "Pospiesz się, bo narobię ci na środek pokoju!": "audio/rano_narobie.mp3",
     "Sikać mi się chce, szybko!": "audio/rano_siki.mp3",
@@ -164,7 +165,6 @@ MAPA_AWANTURA = {
 }
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
-
 # --- ELEVENLABS + ALGORITHMIC PITCH SHIFT (OSZUSTWO FILTRÓW WIEKU) ---
 def podwyzsz_glos_do_malucha(input_audio_bytes, factor=1.22):
     """Zmienia samplerate, podbijając tonację w locie, dając idealny głos 10-latka."""
@@ -204,6 +204,7 @@ def generuj_audio_premium(tekst_do_psa, voice_endpoint):
         return ""
     except:
         return ""
+
 # --- STRUMIENIOWA ANALIZA AUDIO + DETEKTOR MOWY ---
 def analizuj_audio(audio_bytes):
     try:
@@ -287,7 +288,6 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauHau.online PRO v13.2")
@@ -310,12 +310,13 @@ def sekcja_tlumacza():
     czy_znane_urzadzenie = (query_params.get("device") == "stary") or st.session_state.czy_znane_urzadzenie
 
     # --- UKRYCIE OPCJI WYBORU WIELKOŚCI DLA UŻYTKOWNIKA ---
-    # Zgodnie z Twoją prośbą, menu wyboru zostało usunięte z widoku użytkownika.
+    # Zgodnie z ustaleniami, menu wyboru st.radio zostało usunięte z widoku.
     # Pod spodem aplikacja domyślnie działa na profilu psa średniego.
     klasa_wybrana = "Średni (np. Beagle, Border Collie)"
 
     st.write("### 🎤 Krok 1: Nagraj dźwięk psa:")
     audio_nagrane = st.audio_input("Nagraj dźwięk:")
+
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
         wykryte_hz, czy_warczenie, czy_to_pies, czy_awantura, mowa_czlowieka, czy_podekscytowany_aport = analizuj_audio(audio_bytes)
@@ -421,6 +422,7 @@ def sekcja_tlumacza():
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
 
             else:
+                # [POPRAWKA LOGICZNA]: Jeśli krok > 5, pozwalamy na pełne działanie algorytmu premium dla każdego użytkownika!
                 if czy_znane_urzadzenie:
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
 
