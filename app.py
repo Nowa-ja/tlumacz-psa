@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 import io
 import random
 import os
