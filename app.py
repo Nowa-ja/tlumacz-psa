@@ -11,6 +11,11 @@ import speech_recognition as sr # Zaawansowane rozpoznawanie mowy ludzkiej
 # --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.2 - STABLE RUN) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.2", page_icon="🐕", layout="centered")
 
+# --- REJESTRACJA IKONY APLIKACJI DLA TELEFONÓW (PWA) ---
+st.markdown("""
+    <link rel="manifest" href="/manifest.json">
+""", unsafe_allow_html=True)
+
 # --- SZYBKA PAMIĘĆ PODRĘCZNA DLA PLIKÓW AUDIO (ZABEZPIECZENIE SERWERA) ---
 @st.cache_data
 def wczytaj_audio_do_ramu(sciezka):
