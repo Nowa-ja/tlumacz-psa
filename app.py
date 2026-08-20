@@ -562,7 +562,23 @@ def sekcja_zapowiedzi():
     st.markdown("""
     <div style="text-align: center; padding: 40px; background-color: #cbd5ce; border-radius: 16px; border: 3px dashed #1e4620;">
         <h2 style="font-size: 60px; margin-bottom: 10px;">🔒</h2>
-        <h2 style="color: #1e4620; font-weight: bold; margin-top: 0;">WIELKA PREMIERA: 1.10</h2>
+        <h2 style="color: #1e4620; font-weight: bold; margin-top: 0;">WIELKA PREMIERA</h2>
         <p style="font-size: 18px; color: #2c4c2e; font-weight: bold; margin: 20px 0;">
             Nadchodzi rewolucja w psiej komunikacji! Już niebawem pierwsza odsłona.
         </p>
+        <div style="background-color: #1e4620; color: white; padding: 12px 25px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; font-size: 16px;">
+            💬 ZAKŁADAJ KONTA, WRZUCAJ ZDJĘCIA, ROZMAWIAJ W IMIENIU PSA
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ==================== NAVIGATION / NAWIGACJA STRONY ====================
+st.sidebar.title("🐾 Menu Główne")
+wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)", "💬 SEKCJA PRZYSZŁOŚCI"])
+
+if wybór == "🐕 HauTłumacz":
+    sekcja_tlumacza()
+elif wybór == "🌐 Encyklopedia Hz (Blog)":
+    sekcja_bloga()
+elif wybór == "💬 SEKCJA PRZYSZŁOŚCI":
+    sekcja_zapowiedzi()
