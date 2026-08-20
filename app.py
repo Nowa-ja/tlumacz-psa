@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import io
 import random
 import os
@@ -6,8 +6,8 @@ from datetime import datetime, time
 import soundfile as sf
 import numpy as np
 import streamlit.components.v1 as components
-import speech_recognition as sr  # Zaawansowane rozpoznawanie mowy ludzkiej
-import requests  # Obsługa bezpiecznych zapytań do API ElevenLabs
+import speech_recognition as sr # Zaawansowane rozpoznawanie mowy ludzkiej
+import requests # Obsługa bezpiecznych zapytań do API ElevenLabs
 
 # --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.2 - STABLE RUN) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.2", page_icon="🐕", layout="centered")
@@ -33,8 +33,8 @@ st.markdown("""
     }
     
     .stAudioInput button, .stAudioInput svg, [data-testid="stAudioInput"] svg {
-        width: 45px !important;      
-        height: 45px !important;     
+        width: 45px !important; 
+        height: 45px !important; 
         transition: transform 0.2s;
     }
     .stAudioInput button:hover { transform: scale(1.15); }
@@ -64,7 +64,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
@@ -93,12 +92,11 @@ TEKSTY_DUZY_OWCHAREK_ZABAWA = ["Dawaj parówkę albo sam sobie wezmę kawał mi�
 TEKSTY_SREDNI_BEAGLE = ["Wykryto ton rasy średniej (Beagle/Spaniel/Border)! Mam idealne proporcje sprytu i energii.", "Może i nie jestem gigantem, ale za to potrafię wywęszyć każdą parówkę w promieniu kilometra!", "Zaraz zrobię ci tutaj małe przemeblowanie, jeśli natychmiast nie pójdziemy pobiegać!"]
 TEKSTY_MALUCH = ["Wykryto małego spryciarza (Mops/Buldog/Jack Russell)! Mały ciałem, ale potężny duchem!", "Nie patrz tak na mnie z góry! Moje nogi są krótkie, ale gonić kota potrafię szybciej niż myślisz."]
 TEKSTY_MINIATURA_JAMNIK = ["Może i jestem mały jak parówka, ale gniew mam tak wielki, że bardzo długo będziesz to spotkanie wspominać!", "Jestem małym, wściekłym demonem! But potrafię zajść ci za skórę!"]
-
 # ==================== MAPOWANIE MATRYCY AUDIO ====================
 MAPA_ALARM = {
     "Zatrzymaj się. Natychmiast. Nie testuj mojej cierpliwości.": "audio/alarm_zatrzymaj.mp3",
     "Nie podchodź. To nie są żarty, ani zabawa.": "audio/alarm_nie_podchodz.mp3",
-    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej godowości do ataku.": "audio/alarm_odsun_sie.mp3",
+    "Odsuń się powoli. Widzę twój każdy ruch i jestem w pełnej gotowości do ataku.": "audio/alarm_odsun_sie.mp3",
     "Zostaw mnie w spokoju. Ostrzegam cię ostatni raz, zanim stracę nad sobą kontrolę.": "audio/alarm_zostaw_mnie.mp3",
     "Odejdź stąd natychmiast, bo pożałujesz tej pewności siebie.": "audio/alarm_odejdz.mp3",
     "Cofnij się, nie żartuję. To moje ostatnie ostrzeżenie.": "audio/alarm_cofnij_sie.mp3",
@@ -165,6 +163,7 @@ MAPA_AWANTURA = {
 }
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
+
 # --- ELEVENLABS + ALGORITHMIC PITCH SHIFT (OSZUSTWO FILTRÓW WIEKU) ---
 def podwyzsz_glos_do_malucha(input_audio_bytes, factor=1.22):
     """Zmienia samplerate, podbijając tonację w locie, dając idealny głos 10-latka."""
@@ -209,6 +208,12 @@ def generuj_audio_premium(tekst_do_psa, voice_endpoint):
 def analizuj_audio(audio_bytes):
     try:
         data, sample_rate = sf.read(io.BytesIO(audio_bytes))
+        
+        # [BEZPIECZNE OBEJŚCIE] Cyfrowe przycięcie nagrania do maksymalnie 10 sekund
+        max_probek = sample_rate * 10
+        if len(data) > max_probek:
+            data = data[:max_probek]
+            
         if len(data.shape) > 1:
             data = data.mean(axis=1)
         if len(data) == 0:
@@ -288,6 +293,8 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
+
+
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauHau.online PRO v13.2")
@@ -315,7 +322,7 @@ def sekcja_tlumacza():
     klasa_wybrana = "Średni (np. Beagle, Border Collie)"
 
     st.write("### 🎤 Krok 1: Nagraj dźwięk psa:")
-    audio_nagrane = st.audio_input("Nagraj dźwięk:", max_duration=10)
+    audio_nagrane = st.audio_input("Nagraj dźwięk:")
 
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
@@ -393,6 +400,7 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia ani innych dźwięków wydawnych przez psy. Częstotliwość wskazuje, że był to dźwięk wydawany przez starego osła!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
+
         # 4. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
         else:
             st.session_state.licznik_tlumaczen += 1
@@ -518,7 +526,7 @@ def sekcja_tlumacza():
         - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
-        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z каждым dniem powiększa się o kolejne zwroty i słowa. 
+        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
         
         W celu tłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
         
@@ -556,21 +564,5 @@ def sekcja_zapowiedzi():
         <h2 style="font-size: 60px; margin-bottom: 10px;">🔒</h2>
         <h2 style="color: #1e4620; font-weight: bold; margin-top: 0;">WIELKA PREMIERA: 1.10</h2>
         <p style="font-size: 18px; color: #2c4c2e; font-weight: bold; margin: 20px 0;">
-            Nadchodzi rewolucja w psiej komunikacji! Już pierwszego października otwieramy bramy pełnego, personalnego Komunikatora dla Twojego pupila.
+            Nadchodzi rewolucja w psiej komunikacji! Już niebawem pierwsza odsłona.
         </p>
-        <div style="background-color: #1e4620; color: white; padding: 12px 25px; border-radius: 8px; font-weight: bold; display: inline-block; margin-bottom: 20px; font-size: 16px;">
-            💬 ZAKŁADAJ KONTA, WRZUCAJ ZDJĘCIA, ROZMAWIAJ W IMIENIU PSA
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==================== NAVIGATION / NAWIGACJA STRONY ====================
-st.sidebar.title("🐾 Menu Główne")
-wybór = st.sidebar.radio("Przejdź do:", ["🐕 HauTłumacz", "🌐 Encyklopedia Hz (Blog)", "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)"])
-
-if wybór == "🐕 HauTłumacz":
-    sekcja_tlumacza()
-elif wybór == "🌐 Encyklopedia Hz (Blog)":
-    sekcja_bloga()
-elif wybór == "💬 SEKCJA PRZYSZŁOŚCI (premiera 1.10)":
-    sekcja_zapowiedzi()
