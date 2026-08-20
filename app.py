@@ -515,23 +515,32 @@ def sekcja_tlumacza():
         else:
             st.info("🐕 Przygotowywanie ścieżki audio dla Twojego pupila...")
                 
-    st.write("---")
-    if st.button("📝 Regulamin strony"):
-        st.info("""
-        **Regulamin i informacje o serwisie hauhau.online**
-        
-        Drogi użytkowniku.
-        Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
-        
-        - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
-        - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
-        
-        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
-        
-        W celu tłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
-        
-        Życzę wszystkim wiele radości z użytkowania tłumacza!
-        """)
+        st.write("---")
+        if st.button("📝 Regulamin strony i Instrukcja"):
+            st.info("""
+            **📖 INSTRUKCJA OBSŁUGI TŁUMACZA:**
+            1. Widzisz, że pies chce ci coś przekazać.
+            2. Szybko wciśnij nagrywanie.
+            3. Poczekaj na analizę.
+            4. Odsłuchaj wynik.
+            
+            *Powtórz proces, gdy chcesz na nowo posłuchać, co twój pupil ma ci do powiedzenia. Nie strasz i nie denerwuj psa specjalnie! Im więcej spokoju, tym częstotliwość i nagranie są czystsze, co daje 100% sukcesu. Nagrywanie dźwięków, jakie wydaje pies, gdy w tle słychać inne szumy, zniekształci analizę, więc postaraj się o ciszę i skupienie. Mamy nadzieję, że twój czworonożny przyjaciel będzie wypowiadał się o tobie w samych superlatywach (nawet jeśli szczeka do rytmu Nirvany!).*
+            
+            ---
+            **⚖️ REGULAMIN I INFORMACJE O SERWISIE HAUHAU.ONLINE**
+            
+            Drogi użytkowniku! Jest mi bardzo miło gościć Ciebie na stronie „hauhau.online” i liczę na to, że efekt mojej pracy sprawi Ci wiele przyjemności w trakcie użytkowania tłumacza oraz przyczyni się do pogłębienia relacji między psiakiem a człowiekiem. 
+            
+            - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
+            - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
+            
+            Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
+            
+            W celu tłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
+            
+            Życzę wszystkim wiele radości z użytkowania tłumacza!
+            """)
+
 
 # ==================== ENCYKLOPEDIA HZ (BLOG) ====================
 def sekcja_bloga():
