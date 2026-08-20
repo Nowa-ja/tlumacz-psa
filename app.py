@@ -310,12 +310,12 @@ def sekcja_tlumacza():
     czy_znane_urzadzenie = (query_params.get("device") == "stary") or st.session_state.czy_znane_urzadzenie
 
     # --- UKRYCIE OPCJI WYBORU WIELKOŚCI DLA UŻYTKOWNIKA ---
-    # Zgodnie z ustaleniami, menu wyboru st.radio zostało usunięte z widoku.
+    # Zgodnie z ustaleniami, menu wyboru zostało usunięte z widoku użytkownika.
     # Pod spodem aplikacja domyślnie działa na profilu psa średniego.
     klasa_wybrana = "Średni (np. Beagle, Border Collie)"
 
     st.write("### 🎤 Krok 1: Nagraj dźwięk psa:")
-    audio_nagrane = st.audio_input("Nagraj dźwięk:")
+    audio_nagrane = st.audio_input("Nagraj dźwięk:", max_duration=10)
 
     if audio_nagrane is not None:
         audio_bytes = audio_nagrane.read()
@@ -422,7 +422,6 @@ def sekcja_tlumacza():
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
 
             else:
-                # [POPRAWKA LOGICZNA]: Jeśli krok > 5, pozwalamy na pełne działanie algorytmu premium dla każdego użytkownika!
                 if czy_znane_urzadzenie:
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
 
@@ -519,7 +518,7 @@ def sekcja_tlumacza():
         - Na stronie hauhau.online nie są gromadzone żadne dane oraz dźwięki wydobywane przez zwierzęta, które nagrasz w celu przetłumaczenia. 
         - Na stronie hauhau.online nie są gromadzone żadne tłumaczenia, a każdy kolejny proces nagrywania kasuje nagranie poprzednie tak samo jak opuszczenie strony. Więc jeśli chcesz zachować tekst, utrwal go samodzielnie.
         
-        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z każdym dniem powiększa się o kolejne zwroty i słowa. 
+        Cały proces tłumaczenia odbywa się na bieżąco i jest on wynikiem klasyfikacji przez algorytm i dobierania słów zapisanych w bazie danych, która z каждым dniem powiększa się o kolejne zwroty i słowa. 
         
         W celu tłumaczenia bardziej skomplikowanych dźwięków zapraszam do kontaktu drogą elektroniczną pod adresem: hauhau.kontakt@gmail.com w celu ustalenia warunków tłumaczenia psisięgłego – (zastrzegając, że czas odpowiedzi może być dłuższy). Dołożę wszelkich starań, aby tłumaczenie spełniało najwyższe standardy. 
         
