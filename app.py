@@ -7,10 +7,16 @@ import soundfile as sf
 import numpy as np
 import streamlit.components.v1 as components
 import speech_recognition as sr # Zaawansowane rozpoznawanie mowy ludzkiej
-import requests # Obsługa bezpiecznych zapytań do API ElevenLabs
 
 # --- BEZPIECZNA KONFIGURACJA STRONY (WERSJA VIRAL MVP v13.2 - STABLE RUN) ---
 st.set_page_config(page_title="HauTłumacz PRO v13.2", page_icon="🐕", layout="centered")
+
+# --- SZYBKA PAMIĘĆ PODRĘCZNA DLA PLIKÓW AUDIO (ZABEZPIECZENIE SERWERA) ---
+@st.cache_data
+def wczytaj_audio_do_ramu(sciezka):
+    """Wczytuje plik MP3 do pamięci RAM raz. Zapobiega zatkaniu dysku przy dużym ruchu."""
+    with open(sciezka, "rb") as f:
+        return f.read()
 
 # --- STRUMIEŃ STYLÓW GLOBALNYCH ---
 st.markdown("""
@@ -64,6 +70,7 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 # --- INICJALIZACJA PAMIĘCI SYSTEMU ---
 if "ostatni_tekst" not in st.session_state: st.session_state.ostatni_tekst = ""
 if "wykorzystane_teksty" not in st.session_state: st.session_state.wykorzystane_teksty = set()
@@ -164,52 +171,12 @@ MAPA_AWANTURA = {
 
 PELNA_MAPA_AUDIO = {**MAPA_ALARM, **MAPA_PORANEK, **MAPA_PRZEDPOLUDNIE, **MAPA_ZABAWA, **MAPA_POPO_WIECZOR, **MAPA_RASOWA, **MAPA_AWANTURA}
 
-# --- ELEVENLABS + ALGORITHMIC PITCH SHIFT (OSZUSTWO FILTRÓW WIEKU) ---
-def podwyzsz_glos_do_malucha(input_audio_bytes, factor=1.22):
-    """Zmienia samplerate, podbijając tonację w locie, dając idealny głos 10-latka."""
-    try:
-        data, samplerate = sf.read(io.BytesIO(input_audio_bytes))
-        new_samplerate = int(samplerate * factor)
-        out_buffer = io.BytesIO()
-        sf.write(out_buffer, data, new_samplerate, format='mp3')
-        return out_buffer.getvalue()
-    except:
-        return input_audio_bytes
-
-def generuj_audio_premium(tekst_do_psa, voice_endpoint):
-    ELEVEN_API_KEY = "TWÓJ_KLUCZ_API_ELEVENLABS"  # Podmień na swój token
-    url = f"https://elevenlabs.io{voice_endpoint}"
-    headers = {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": ELEVEN_API_KEY
-    }
-    data = {
-        "text": tekst_do_psa,
-        "model_id": "eleven_multilingual_v2",
-        "voice_settings": {
-            "stability": 0.40,
-            "similarity_boost": 0.85
-        }
-    }
-    try:
-        os.makedirs("audio", exist_ok=True)
-        response = requests.post(url, json=data, headers=headers, timeout=8)
-        if response.status_code == 200:
-            sciezka_dynamiczna = "audio/dynamic_premium.mp3"
-            with open(sciezka_dynamiczna, "wb") as f:
-                f.write(response.content)
-            return sciezka_dynamiczna
-        return ""
-    except:
-        return ""
-
 # --- STRUMIENIOWA ANALIZA AUDIO + DETEKTOR MOWY ---
 def analizuj_audio(audio_bytes):
     try:
         data, sample_rate = sf.read(io.BytesIO(audio_bytes))
         
-        # [BEZPIECZNE OBEJŚCIE] Cyfrowe przycięcie nagrania do maksymalnie 10 sekund
+        # Cyfrowe przycięcie nagrania do maksymalnie 10 sekund
         max_probek = sample_rate * 10
         if len(data) > max_probek:
             data = data[:max_probek]
@@ -251,7 +218,6 @@ def analizuj_audio(audio_bytes):
             if (energia_basu / calkowita_energia) > 0.20:
                 czy_warczenie = True
 
-        # Obliczamy awanturę dopiero TUTAJ - kiedy wiemy już, czy pies realnie warczy!
         czy_awantura = (dlugosc_sekundy >= 4.0 and ogolna_glosnosc > 0.018 and czy_warczenie)
 
         # --- DETEKCJA SŁÓW KLUCZOWYCH CZŁOWIEKA ---
@@ -293,8 +259,6 @@ def pobierz_tekst_kontekstowy(baza):
     st.session_state.wykorzystane_teksty.add(wybrany)
     st.session_state.ostatni_tekst = wybrany
     return wybrany
-
-
 # ==================== SEKCJA GŁÓWNA TŁUMACZA ====================
 def sekcja_tlumacza():
     st.title("🐕 HauHau.online PRO v13.2")
@@ -316,9 +280,6 @@ def sekcja_tlumacza():
     query_params = st.query_params
     czy_znane_urzadzenie = (query_params.get("device") == "stary") or st.session_state.czy_znane_urzadzenie
 
-    # --- UKRYCIE OPCJI WYBORU WIELKOŚCI DLA UŻYTKOWNIKA ---
-    # Zgodnie z ustaleniami, menu wyboru zostało usunięte z widoku użytkownika.
-    # Pod spodem aplikacja domyślnie działa na profilu psa średniego.
     klasa_wybrana = "Średni (np. Beagle, Border Collie)"
 
     st.write("### 🎤 Krok 1: Nagraj dźwięk psa:")
@@ -376,7 +337,7 @@ def sekcja_tlumacza():
                 sciezka_audio = "audio/awantura_garnki.mp3"
                 st.session_state.ostatni_byl_alert_garnki = True
 
-        # NOWY PRIORYTET: WYKRYCIE PODEKSCYTOWANEGO PSA (Czeka na patyk)
+        # PRIORYTET: WYKRYCIE PODEKSCYTOWANEGO PSA (Czeka na patyk)
         elif czy_podekscytowany_aport:
             final_tekst = "No rzuć mi ten patyk albo zabawkę, ile mam prosić?!"
             naglowek_ekranu = "[🔥 WYKRYTO EKSCYTACJĘ APORTOWĄ]"
@@ -400,8 +361,7 @@ def sekcja_tlumacza():
             final_tekst = "Wykryty dźwięk nie przypomina szczekania ani warczenia ani innych dźwięków wydawnych przez psy. Częstotliwość wskazuje, że był to dźwięk wydawany przez starego osła!"
             naglowek_ekranu = "[⚠️ LUDZKI BEŁKOT WYKRYTY]"
             sciezka_audio = "audio/error_belkot.mp3"
-
-        # 4. GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ
+        # --- GŁÓWNA LOGIKA SCENARIUSZY I DETEKCJI HZ ---
         else:
             st.session_state.licznik_tlumaczen += 1
             krok = st.session_state.licznik_tlumaczen
@@ -433,7 +393,6 @@ def sekcja_tlumacza():
                 if czy_znane_urzadzenie:
                     components.html('<script>localStorage.setItem("hauhau_status_urzadzenia", "stary");</script>', height=0, width=0)
 
-                # --- INTEGRACJA DYNAMICZNEGO API ELEVENLABS PREMIUM ---
                 if "Miniaturka" in klasa_wybrana:
                     if 800 <= wykryte_hz <= 1000:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_MINIATURA_JAMNIK)
@@ -441,17 +400,6 @@ def sekcja_tlumacza():
                     else:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_NOCNE)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Miniaturka - Emocje]"
-
-                    sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/LcfcDJN69w8YKVvmsUJU")
-                    if sciezka_audio:
-                        try:
-                            with open(sciezka_audio, "rb") as f:
-                                raw_audio = f.read()
-                            processed_audio = podwyzsz_glos_do_malucha(raw_audio, factor=1.22)
-                            with open(sciezka_audio, "wb") as f:
-                                f.write(processed_audio)
-                        except:
-                            pass
 
                 elif "Średni" in klasa_wybrana:
                     if 70 <= wykryte_hz <= 95:
@@ -465,8 +413,6 @@ def sekcja_tlumacza():
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_DZIENNE_ZABAWA)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Średni - Komunikat]"
 
-                    sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/AZnzlk1XvdvUeBnXmlld")
-
                 elif "Duży" in klasa_wybrana:
                     if 45 <= wykryte_hz <= 65:
                         final_tekst = pobierz_tekst_kontekstowy(TEKSTY_WARCZENIE_ALARM)
@@ -479,9 +425,7 @@ def sekcja_tlumacza():
                         final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_POPOLUDNIOWYCH)
                         naglowek_ekranu = f"[{int(wykryte_hz)} Hz - Duży - Ekscytacja]"
 
-                    sciezka_audio = generuj_audio_premium(final_tekst, "/v1/text-to-speech/pNInz6obpgmo5Cgfcwti")
-
-        # --- REZERWOWY FALLBACK DLA MATRYCY CZASOWEJ (Jeśli silnik API nie zwrócił ścieżki) ---
+        # --- REZERWOWY FALLBACK DLA MATRYCY CZASOWEJ ---
         if final_tekst == "":
             if is_morning: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTY_PORANNE)
             elif is_pre_noon: final_tekst = pobierz_tekst_kontekstowy(GRUPA_TEKSTOW_PRZEDPOLUDNIOWYCH)
@@ -507,8 +451,9 @@ def sekcja_tlumacza():
         
         if sciezka_audio and os.path.exists(sciezka_audio):
             try:
-                with open(sciezka_audio, "rb") as f:
-                    st.audio(f.read(), format="audio/mp3", autoplay=True)
+                # OPTYMALIZACJA: Błyskawiczne odtworzenie z pamięci RAM za pomocą cache
+                dane_audio = wczytaj_audio_do_ramu(sciezka_audio)
+                st.audio(dane_audio, format="audio/mp3", autoplay=True)
             except Exception as e:
                 st.sidebar.error(f"Błąd odczytu pliku: {str(e)}")
                 st.info("🐕 Trwa odtwarzanie dźwięku psa...")
@@ -579,7 +524,7 @@ def sekcja_zapowiedzi():
             💬 ZAKŁADAJ KONTA, WRZUCAJ ZDJĘCIA, ROZMAWIAJ W IMIENIU PSA
         </div>
     </div>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ==================== NAVIGATION / NAWIGACJA STRONY ====================
 st.sidebar.title("🐾 Menu Główne")
